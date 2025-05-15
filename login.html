@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - AI Query Bot</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --secondary-color: #2c3e50;
+        --accent-color: #e74c3c;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        background-color: #f8f9fa;
+        height: 100vh;
+      }
+
+      .login-container {
+        max-width: 450px;
+        margin: 50px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--secondary-color);
+      }
+
+      .login-header h1 {
+        font-weight: 600;
+      }
+
+      .login-form .form-group {
+        margin-bottom: 20px;
+      }
+
+      .login-form .form-control {
+        height: 50px;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 10px 15px;
+      }
+
+      .login-form .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+      }
+
+      .btn-login {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        color: white;
+        border: none;
+        height: 50px;
+        border-radius: 10px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+      }
+
+      .btn-login:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .login-footer {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .login-footer a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .login-footer a:hover {
+        text-decoration: underline;
+      }
+
+      .brand-logo {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .brand-logo i {
+        font-size: 3rem;
+        color: var(--primary-color);
+      }
+
+      .alert {
+        display: none;
+        margin-bottom: 20px;
+        border-radius: 10px;
+      }
+
+      .alert-danger {
+        background-color: #fee2e2;
+        border-color: #fecaca;
+        color: #dc2626;
+      }
+
+      .alert-success {
+        background-color: #dcfce7;
+        border-color: #bbf7d0;
+        color: #16a34a;
+      }
+
+      .password-input-container {
+        position: relative;
+      }
+
+      .toggle-password {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .toggle-password:hover {
+        color: var(--primary-color);
+      }
+
+      .remember-me-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .form-check {
+        display: flex;
+        align-items: center;
+      }
+
+      .form-check-input {
+        margin-right: 8px;
+        cursor: pointer;
+      }
+
+      .form-check-label {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .forgot-password {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .forgot-password:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand" href="/">AI Query Bot</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="login.html">Login</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="signup.html">Sign Up</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="login-container">
+        <div class="brand-logo">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="login-header">
+          <h1>Welcome Back</h1>
+          <p>Login to your AI Query Bot account</p>
+        </div>
+        <div class="alert alert-danger" id="errorAlert" role="alert"></div>
+        <div class="alert alert-success" id="successAlert" role="alert"></div>
+        <form class="login-form" id="loginForm">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-input-container">
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+              <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group remember-me-container">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+              <label class="form-check-label" for="rememberMe">Remember Me</label>
+            </div>
+            <a href="#" class="forgot-password">Forgot Password?</a>
+          </div>
+          <button type="submit" class="btn btn-login">Login</button>
+        </form>
+        <div class="login-footer">
+          <p>Don't have an account? <a href="/signup">Sign up</a></p>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Clear the logged out flag if it exists
+        if (sessionStorage.getItem("loggedOut")) {
+          sessionStorage.removeItem("loggedOut");
+          console.log("User has been logged out and needs to login again");
+        }
+        
+        // Check if coming from signup (check for stored username)
+        const signupUsername = localStorage.getItem("signupUsername");
+        if (signupUsername) {
+          document.getElementById("username").value = signupUsername;
+          const successAlert = document.getElementById("successAlert");
+          successAlert.textContent = "Your account was created successfully! Please login with your credentials.";
+          successAlert.style.display = "block";
+          // Clear the stored signup username after use
+          localStorage.removeItem("signupUsername");
+        }
+        
+        // Check if user is already logged in by checking with the server
+        async function checkAuth() {
+          try {
+            const response = await fetch("/api/check-auth", {
+              credentials: "same-origin" // Include cookies to check session status
+            });
+            
+            // If we can't connect to the server, don't redirect
+            if (!response.ok) {
+              console.error("Auth check failed:", response.status);
+              return;
+            }
+            
+            const data = await response.json();
+
+            if (data.authenticated) {
+              // User is already authenticated via server session, redirect them
+              window.location.href = "/Chatbot.html";
+            }
+          } catch (error) {
+            console.error("Error checking authentication:", error);
+          }
+        }
+
+        // Check auth status when page loads
+        checkAuth();
+
+        // Pre-fill username if "Remember Me" was previously checked
+        // This doesn't automatically log the user in, just fills the username
+        const savedUsername = localStorage.getItem("rememberedUsername");
+        const rememberMeEnabled = localStorage.getItem("rememberMe") === "true";
+        
+        if (savedUsername && rememberMeEnabled) {
+          document.getElementById("username").value = savedUsername;
+          document.getElementById("rememberMe").checked = true;
+        }
+
+        // Login form submission
+        const loginForm = document.getElementById("loginForm");
+        const errorAlert = document.getElementById("errorAlert");
+        const successAlert = document.getElementById("successAlert");
+
+        loginForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const rememberMe = document.getElementById("rememberMe").checked;
+
+          try {
+            errorAlert.style.display = "none";
+            successAlert.style.display = "none";
+
+            try {
+              const response = await fetch("/api/login", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ username, password, rememberMe }),
+                credentials: "same-origin", // Include cookies with the request
+              });
+
+              const data = await response.json();
+
+              if (response.ok) {
+                // Handle "Remember Me" functionality - only store username, not password
+                if (rememberMe) {
+                  localStorage.setItem("rememberedUsername", username);
+                  localStorage.setItem("rememberMe", "true");
+                } else {
+                  localStorage.removeItem("rememberedUsername");
+                  localStorage.removeItem("rememberMe");
+                }
+
+                // We don't need to store auth tokens in localStorage anymore
+                // as we're using server-side sessions
+                // Just store the current user for display purposes
+                localStorage.setItem("currentUser", username);
+
+                successAlert.textContent = "Login successful! Redirecting...";
+                successAlert.style.display = "block";
+
+                setTimeout(() => {
+                  window.location.href = data.redirect || "/Chatbot.html";
+                }, 1000);
+              } else {
+                errorAlert.textContent =
+                  data.error || "Login failed. Please try again.";
+                errorAlert.style.display = "block";
+              }
+            } catch (error) {
+              console.error("Login API error:", error);
+              errorAlert.textContent = "Server error. Please try again later.";
+              errorAlert.style.display = "block";
+            }
+          } catch (error) {
+            console.error("Login error:", error);
+            errorAlert.textContent =
+              "Network error. Please check your connection and try again.";
+            errorAlert.style.display = "block";
+          }
+        });
+      });
+
+      // Toggle password visibility
+      function togglePasswordVisibility() {
+        const passwordInput = document.getElementById("password");
+        const toggleButton = document.querySelector(".toggle-password i");
+        
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          toggleButton.classList.remove("fa-eye");
+          toggleButton.classList.add("fa-eye-slash");
+        } else {
+          passwordInput.type = "password";
+          toggleButton.classList.remove("fa-eye-slash");
+          toggleButton.classList.add("fa-eye");
+        }
+      }
+    </script>
+  </body>
+</html>

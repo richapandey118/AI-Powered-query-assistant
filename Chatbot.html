@@ -1,0 +1,5200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Query Bot - Modern Chat Interface</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.14.0" type="module"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+    <script src="/js/faq-utils.js"></script>
+    <style>
+      :root {
+        --primary-color: #7c3aed;
+        --secondary-color: #4b5563;
+        --accent-color: #10b981;
+        --bg-color: #111827;
+        --chat-bg: #1f2937;
+        --text-color: #f3f4f6;
+        --sidebar-width: 300px;
+        --header-height: 64px;
+        --message-max-width: 85%;
+        --border-radius: 12px;
+        --gradient-start: #1a1a2e;
+        --gradient-end: #16213e;
+        --card-bg: rgba(31, 41, 55, 0.9);
+        --border-color: rgba(255, 255, 255, 0.1);
+        --notification-panel-width: 300px;
+      }
+      
+      /* Light theme variables - root contains dark theme by default */
+      body.light-theme {
+        --bg-color: #f0f4f8;
+        --chat-bg: #ffffff;
+        --text-color: #1a202c;
+        --gradient-start: #e6eef8;
+        --gradient-end: #d1ddf0;
+        --card-bg: rgba(255, 255, 255, 0.9);
+        --border-color: rgba(0, 0, 0, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        background: linear-gradient(
+          135deg,
+          var(--gradient-start),
+          var(--gradient-end)
+        );
+        color: var(--text-color);
+        line-height: 1.6;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .app-container {
+        display: flex;
+        height: 100vh;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        width: var(--sidebar-width);
+        background-color: rgba(31, 41, 55, 0.8);
+        backdrop-filter: blur(10px);
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .sidebar.collapsed {
+        transform: translateX(-100%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .search-container {
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 10px 35px 10px 15px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--border-radius);
+        color: var(--text-color);
+        font-size: 0.9rem;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-color);
+        opacity: 0.7;
+      }
+
+      .new-chat-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, var(--primary-color), #6d28d9);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2);
+      }
+
+      .new-chat-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(124, 58, 237, 0.3);
+      }
+
+      .chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      .history-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-color);
+        transition: all 0.3s ease;
+        background-color: rgba(255, 255, 255, 0.05);
+        position: relative;
+      }
+
+      .history-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+      }
+
+      .history-item.active {
+        background-color: rgba(124, 58, 237, 0.2);
+        border-left: 3px solid var(--primary-color);
+      }
+
+      .history-item .chat-name {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+      }
+
+      .history-action-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        opacity: 0;
+        transition: opacity 0.2s;
+        padding: 4px;
+        cursor: pointer;
+      }
+
+      .history-item:hover .history-action-btn {
+        opacity: 0.7;
+      }
+
+      .history-action-btn:hover {
+        opacity: 1 !important;
+      }
+
+      /* Main Chat Area */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: margin 0.3s ease;
+        display: flex;
+        flex-direction: row; /* Changed to row for the split layout */
+      }
+      
+      /* Left side chat area */
+      .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      
+      /* Right side notification/response panel */
+      .admin-response-panel {
+        width: var(--notification-panel-width);
+        background-color: var(--card-bg);
+        border-left: 1px solid var(--border-color);
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s ease;
+      }
+      
+      .admin-response-panel.collapsed {
+        width: 0;
+        border-left: none;
+      }
+      
+      .admin-response-header {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .admin-response-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      
+      .admin-response-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+      
+      .admin-response-list {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+      }
+      
+      .admin-response-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+      
+      .admin-response-query {
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+      
+      .admin-response-answer {
+        margin-bottom: 15px;
+        color: var(--text-color);
+        font-size: 0.95rem;
+      }
+      
+      .admin-response-actions {
+        display: flex;
+        gap: 10px;
+      }
+      
+      .admin-response-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background-color 0.3s ease;
+      }
+      
+      .admin-response-btn.accept {
+        background-color: var(--accent-color);
+        color: white;
+      }
+      
+      .admin-response-btn.ask-again {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      
+      .admin-response-btn.delete {
+        background-color: #ef4444;
+        color: white;
+      }
+
+      /* FAQ section styles */
+      .faq-section {
+        margin-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .faq-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+      }
+
+      .faq-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 1rem;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+      }
+
+      .faq-toggle .fa-chevron-up {
+        transform: rotate(0deg);
+      }
+
+      .faq-toggle .fa-chevron-down {
+        transform: rotate(0deg);
+      }
+
+      .faq-list {
+        padding: 10px 20px;
+        max-height: 250px;
+        overflow-y: auto;
+        transition: max-height 0.3s ease;
+      }
+      
+      .faq-item {
+        padding: 10px;
+        border-radius: var(--border-radius);
+        background-color: rgba(255, 255, 255, 0.05);
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      
+      .faq-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      /* Notification styles for resolved queries */
+      .notification-container {
+        position: fixed;
+        right: 20px;
+        bottom: 80px;
+        z-index: 1000;
+        max-width: 350px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      /* Container for dismiss all button */
+      .notification-controls {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+      }
+      
+      .dismiss-all-btn {
+        background-color: rgba(31, 41, 55, 0.95);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+      }
+      
+      .dismiss-all-btn:hover {
+        background-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+      
+      .notification-card {
+        background-color: rgba(31, 41, 55, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius);
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border-left: 4px solid var(--primary-color);
+        animation: slideIn 0.3s ease forwards;
+        transition: all 0.3s ease;
+      }
+      
+      .notification-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+      }
+      
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      
+      .notification-title {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+      
+      .notification-close {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        font-size: 1rem;
+      }
+      
+      .notification-close:hover {
+        opacity: 1;
+      }
+      
+      .notification-message {
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-color);
+      }
+      
+      .notification-response {
+        margin-bottom: 12px;
+        color: var(--text-color);
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+      
+      .notification-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      
+      .notification-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      
+      .notification-btn.primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      
+      .notification-btn.accept {
+        background-color: var(--accent-color);
+        color: white;
+      }
+      
+      .notification-btn.ask {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      
+      .notification-btn.view {
+        background-color: #4b5563;
+        color: white;
+      }
+      
+      .notification-btn.delete {
+        background-color: #ef4444;
+        color: white;
+      }
+      
+      .notification-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .chat-actions {
+        display: flex;
+        align-items: center;
+      }
+
+      .action-icon-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        opacity: 0.7;
+        font-size: 1rem;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .action-icon-btn:hover {
+        opacity: 1;
+        color: var(--primary-color);
+      }
+
+      .clear-chat-btn {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-color);
+        padding: 6px 12px;
+        border-radius: var(--border-radius);
+        font-size: 0.85rem;
+        margin-right: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .clear-chat-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: var(--text-color);
+      }
+
+      #username-display {
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+
+      .logout-btn {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);
+      }
+
+      .menu-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .menu-toggle:hover {
+        color: var(--primary-color);
+        transform: scale(1.1);
+      }
+
+      .chat-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-left: 16px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .chat-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        position: relative;
+        z-index: 1; /* Lower z-index than input container */
+      }
+
+      /* Add spacing between consecutive messages from the same sender */
+      .message + .message.user-message,
+      .message + .message.bot-message {
+        margin-top: 8px;
+      }
+
+      /* Add extra spacing between different senders */
+      .user-message + .bot-message,
+      .bot-message + .user-message {
+        margin-top: 24px;
+      }
+
+      .message {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        max-width: var(--message-max-width);
+        animation: fadeIn 0.3s ease;
+        position: relative;
+        z-index: 2; /* Higher than chat-body but lower than input container */
+        margin-left: 0; /* Default to left alignment for bot messages */
+      }
+
+      .user-message {
+        margin-left: auto; /* Push user messages to the right */
+        margin-right: 0;
+        flex-direction: row-reverse; /* Reverse the order for user messages */
+      }
+
+      .bot-message {
+        margin-right: auto; /* Keep bot messages on the left */
+        margin-left: 0;
+      }
+
+      .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        z-index: 2;
+        background: linear-gradient(135deg, var(--primary-color), #6d28d9);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .bot-message .message-avatar {
+        background: linear-gradient(135deg, var(--accent-color), #059669);
+      }
+
+      .message-content {
+        background-color: var(--chat-bg);
+        padding: 16px;
+        border-radius: var(--border-radius);
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        min-width: 60px;
+        transition: all 0.3s ease;
+        max-width: calc(100% - 60px); /* Prevent content from getting too wide */
+      }
+
+      .user-message .message-content {
+        background: linear-gradient(135deg, var(--primary-color), #6d28d9);
+        border-top-right-radius: 2px; /* Pointed edge on right for user messages */
+        position: relative;
+      }
+
+      .user-message .message-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px;
+        width: 0;
+        height: 0;
+        border-left: 10px solid #6d28d9;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+      }
+
+      .bot-message .message-content {
+        background-color: var(--chat-bg);
+        border-top-left-radius: 2px; /* Pointed edge on left for bot messages */
+        position: relative;
+      }
+
+      .bot-message .message-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -10px;
+        width: 0;
+        height: 0;
+        border-right: 10px solid var(--chat-bg);
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+      }
+
+      .message-text {
+        color: var(--text-color);
+        font-size: 1rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        word-break: break-word;
+      }
+
+      .bot-message .message-text {
+        color: var(--text-color);
+      }
+
+      .user-message .message-text {
+        color: white;
+      }
+
+      .message-actions {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      .user-message .message-actions {
+        right: 10px;
+      }
+      
+      .bot-message .message-actions {
+        right: 10px;
+      }
+
+      .message:hover .message-actions {
+        opacity: 1;
+      }
+
+      .message-action-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+      
+      .user-message .message-action-btn {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      .bot-message .message-action-btn {
+        color: var(--text-color);
+      }
+
+      .message-action-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: scale(1.1);
+      }
+
+      .message-timestamp {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 4px;
+        text-align: right;
+      }
+      
+      .bot-message .message-timestamp {
+        color: rgba(255, 255, 255, 0.5);
+        text-align: left;
+      }
+      
+      .user-message .message-timestamp {
+        color: rgba(255, 255, 255, 0.7);
+        text-align: right;
+      }
+
+      .chat-input-container {
+        padding: 24px;
+        background-color: rgba(31, 41, 55, 0.8);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 999; /* Ensure input container is above messages but below the carousel */
+      }
+
+      .chat-input-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1000; /* Add z-index to position the container above messages */
+      }
+
+      .chat-input {
+        width: 100%;
+        padding: 16px;
+        padding-right: 100px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--border-radius);
+        color: var(--text-color);
+        font-size: 1rem;
+        resize: none;
+        min-height: 56px;
+        max-height: 200px;
+        transition: all 0.3s ease;
+      }
+
+      .chat-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+      }
+
+      .input-actions {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .action-button {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .action-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: scale(1.1);
+      }
+
+      .send-button {
+        background: linear-gradient(135deg, var(--primary-color), #6d28d9);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+      }
+
+      .send-button:disabled {
+        background: var(--secondary-color);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 16px;
+        background-color: var(--chat-bg);
+        border-radius: var(--border-radius);
+        width: fit-content;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--text-color);
+        border-radius: 50%;
+        animation: typing 1s infinite;
+      }
+
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-4px);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* File Upload Styles */
+      .file-upload-container {
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        background-color: var(--chat-bg);
+        border-radius: var(--border-radius);
+        padding: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: none;
+        z-index: 50;
+      }
+
+      .file-upload-container.show {
+        display: block;
+        animation: slideUp 0.3s ease;
+      }
+
+      .file-upload-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        transition: background-color 0.3s ease;
+      }
+
+      .file-upload-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* Emoji Picker Styles */
+      .emoji-picker-container {
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        z-index: 1000;
+        display: none;
+      }
+
+      /* Message Thread Styles */
+      .message-thread {
+        margin-left: 60px;
+        margin-top: 8px;
+        padding-left: 16px;
+        border-left: 2px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .thread-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        opacity: 0.7;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
+      }
+
+      .thread-toggle:hover {
+        opacity: 1;
+      }
+
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 85%;
+          max-width: 300px;
+          z-index: 1100;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+          box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .message {
+          max-width: 95%;
+        }
+
+        .chat-input-wrapper {
+          max-width: 100%;
+        }
+
+        .chat-header {
+          padding: 0 16px;
+        }
+
+        .logout-btn {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+        }
+
+        #username-display {
+          font-size: 0.85rem;
+        }
+
+        .chat-body {
+          padding: 16px;
+        }
+
+        .message-content {
+          padding: 12px;
+        }
+
+        .chat-input-container {
+          padding: 16px;
+        }
+
+        .user-info {
+          gap: 8px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .chat-title {
+          font-size: 1rem;
+          margin-left: 8px;
+          max-width: 150px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .message-avatar {
+          width: 32px;
+          height: 32px;
+          font-size: 1rem;
+        }
+
+        .message {
+          gap: 8px;
+        }
+
+        .chat-input {
+          padding: 12px;
+          padding-right: 90px;
+          font-size: 0.9rem;
+        }
+
+        .input-actions {
+          gap: 4px;
+        }
+
+        .action-button {
+          padding: 6px;
+        }
+
+        .logout-btn span {
+          display: none;
+        }
+
+        .message-actions {
+          top: 6px;
+          right: 6px;
+        }
+      }
+
+      /* Add overlay when sidebar is open on mobile */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+      }
+
+      @media (max-width: 768px) {
+        .sidebar-overlay.active {
+          display: block;
+        }
+      }
+
+      /* Scrollbar Styles */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6d28d9;
+      }
+
+      /* CSS improvements for better responsiveness */
+      .emoji-picker-container emoji-picker {
+        width: 100%;
+        max-width: 350px;
+        height: 350px;
+      }
+      
+      @media (max-width: 480px) {
+        .emoji-picker-container emoji-picker {
+          width: 280px;
+          height: 300px;
+        }
+        
+        .file-upload-container {
+          width: 200px;
+        }
+        
+        .message-content {
+          max-width: 85vw;
+        }
+        
+        .message.user .message-content {
+          max-width: 80vw;
+        }
+        
+        pre code {
+          max-width: 75vw;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+        
+        /* Ensure code blocks are readable on mobile */
+        .markdown-content pre {
+          max-width: 100%;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          font-size: 0.85rem;
+        }
+        
+        .markdown-content img {
+          max-width: 100%;
+          height: auto;
+        }
+      }
+      
+      /* Fix for input field on mobile */
+      @media (max-width: 380px) {
+        .chat-input {
+          padding-right: 80px;
+        }
+        
+        .input-actions {
+          right: 8px;
+          gap: 2px;
+        }
+        
+        .action-button {
+          padding: 4px;
+        }
+        
+        .send-button {
+          width: 28px;
+          height: 28px;
+        }
+        
+        /* Make sure sidebar doesn't take full width on very small screens */
+        .sidebar {
+          max-width: 260px;
+        }
+      }
+      
+      /* Improve scrollbars on mobile */
+      @media (hover: none) {
+        ::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: rgba(124, 58, 237, 0.5);
+        }
+      }
+
+      /* Improve markdown content display */
+      /* Enhanced Markdown Content Styles */
+      .markdown-content {
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+      
+      .markdown-content pre {
+        background-color: rgb(22, 27, 34);
+        border-radius: 6px;
+        padding: 16px;
+        overflow-x: auto;
+        margin: 10px 0;
+        position: relative;
+      }
+      
+      .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+        color: #e6e6e6;
+        white-space: pre;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        tab-size: 2;
+      }
+      
+      /* Add language tag display */
+      .markdown-content pre::before {
+        content: attr(data-language);
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #e6e6e6;
+        background: rgba(0, 0, 0, 0.3);
+        border-bottom-left-radius: 4px;
+        text-transform: uppercase;
+      }
+      
+      /* Inline code styling */
+      .markdown-content code {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 0.9em;
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+      }
+      
+      /* Style HTML code blocks specially */
+      .language-html {
+        color: #e34c26 !important;
+      }
+      
+      .hljs-tag {
+        color: #2973b7;
+      }
+      
+      .hljs-name {
+        color: #2973b7;
+      }
+      
+      .hljs-attr {
+        color: #79b6f2;
+      }
+      
+      .hljs-string {
+        color: #a8ff60;
+      }
+      
+      .markdown-content h1, 
+      .markdown-content h2, 
+      .markdown-content h3,
+      .markdown-content h4,
+      .markdown-content h5,
+      .markdown-content h6 {
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+      
+      .markdown-content h1 {
+        font-size: 1.6em;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.3em;
+      }
+      
+      .markdown-content h2 {
+        font-size: 1.4em;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.3em;
+      }
+      
+      .markdown-content h3 {
+        font-size: 1.2em;
+      }
+      
+      .markdown-content ul, 
+      .markdown-content ol {
+        padding-left: 2em;
+        margin: 10px 0;
+      }
+      
+      .markdown-content li {
+        margin-bottom: 6px;
+      }
+      
+      .markdown-content p {
+        margin-bottom: 16px;
+      }
+      
+      .markdown-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+      }
+      
+      .markdown-content hr {
+        height: 1px;
+        border: none;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 24px 0;
+      }
+      
+      .markdown-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 10px 0;
+        font-size: 0.9em;
+      }
+      
+      .markdown-content th,
+      .markdown-content td {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 8px;
+        text-align: left;
+      }
+      
+      .markdown-content th {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      .markdown-content a {
+        color: #7c3aed;
+        text-decoration: none;
+      }
+      
+      .markdown-content a:hover {
+        text-decoration: underline;
+      }
+      
+      .markdown-content blockquote {
+        border-left: 3px solid #7c3aed;
+        padding-left: 12px;
+        margin-left: 0;
+        margin-right: 0;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Modal Styles */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+      }
+
+      .modal-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-container {
+        width: 90%;
+        max-width: 400px;
+        background-color: var(--chat-bg);
+        border-radius: var(--border-radius);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        padding: 24px;
+        transform: scale(0.95);
+        transition: transform 0.3s;
+      }
+
+      .modal-backdrop.active .modal-container {
+        transform: scale(1);
+      }
+
+      .modal-header {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .modal-header i {
+        color: #e53e3e;
+        font-size: 1.2rem;
+      }
+
+      .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .modal-content {
+        margin-bottom: 24px;
+        color: var(--text-color);
+        opacity: 0.9;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      .modal-btn {
+        padding: 10px 16px;
+        border-radius: var(--border-radius);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+
+      .modal-btn-cancel {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-color);
+      }
+
+      .modal-btn-cancel:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+      }
+
+      .modal-btn-confirm {
+        background-color: #e53e3e;
+        color: white;
+      }
+
+      .modal-btn-confirm:hover {
+        background-color: #c53030;
+      }
+
+      /* Query Suggestion Carousel Styles */
+      .suggestion-carousel {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 8px;
+        border-radius: var(--border-radius);
+        background-color: rgba(31, 41, 55, 0.95); /* Darker background with higher opacity */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); /* Stronger shadow */
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+        z-index: 1100; /* Higher z-index to ensure it appears above messages */
+        margin-bottom: 4px;
+      }
+
+      .suggestion-carousel.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .carousel-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: none;
+        border-radius: 50%;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        z-index: 2;
+      }
+
+      .carousel-arrow:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--primary-color);
+      }
+
+      .carousel-arrow:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
+      }
+
+      .suggestion-container {
+        flex: 1;
+        overflow: hidden;
+        margin: 0 8px;
+        height: 40px;
+      }
+
+      .suggestion-items {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 100%;
+        transition: transform 0.3s ease;
+      }
+
+      .suggestion-item {
+        padding: 8px 16px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+
+      .suggestion-item:hover {
+        background-color: rgba(124, 58, 237, 0.2);
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+
+      .suggestion-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
+        background-color: rgba(124, 58, 237, 0.2);
+        border-color: var(--primary-color);
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .suggestion-carousel {
+          padding: 6px;
+        }
+        
+        .carousel-arrow {
+          width: 28px;
+          height: 28px;
+          font-size: 0.8rem;
+        }
+        
+        .suggestion-item {
+          padding: 6px 12px;
+          font-size: 0.85rem;
+        }
+        
+        .suggestion-container {
+          margin: 0 4px;
+          height: 36px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .suggestion-carousel {
+          padding: 4px;
+        }
+        
+        .carousel-arrow {
+          width: 24px;
+          height: 24px;
+          font-size: 0.7rem;
+        }
+        
+        .suggestion-item {
+          padding: 4px 10px;
+          font-size: 0.8rem;
+        }
+        
+        .suggestion-container {
+          height: 32px;
+        }
+      }
+
+      /* Add styles for the query help button and modal */
+      .query-help-btn {
+        position: absolute;
+        right: 64px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-color);
+        opacity: 0.6;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1.2rem;
+        padding: 8px;
+      }
+      
+      .query-help-btn:hover {
+        opacity: 1;
+        color: var(--primary-color);
+      }
+      
+      /* Modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      .modal.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 1;
+      }
+      
+      .modal-content {
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+      
+      .modal.active .modal-content {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text-color);
+      }
+      
+      .close-modal {
+        font-size: 1.5rem;
+        color: var(--text-color);
+        cursor: pointer;
+        opacity: 0.7;
+        transition: all 0.2s;
+      }
+      
+      .close-modal:hover {
+        opacity: 1;
+        color: var(--primary-color);
+      }
+      
+      .modal-body {
+        padding: 20px;
+        color: var(--text-color);
+      }
+      
+      .modal-body p {
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
+      
+      .modal-body code {
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-family: monospace;
+        color: #10b981;
+      }
+      
+      .modal-body ul {
+        margin-left: 20px;
+        margin-bottom: 20px;
+      }
+      
+      .modal-body li {
+        margin-bottom: 10px;
+      }
+
+      /* Style for query mode input */
+      .chat-input.query-mode {
+        border-color: var(--primary-color) !important;
+        background-color: rgba(124, 58, 237, 0.1) !important;
+      }
+      
+      /* Username display styling */
+      #username-display {
+        font-weight: bold;
+        color: var(--text-color);
+        padding: 8px 16px;
+        cursor: default;
+      }
+      
+      .user-info {
+        display: flex;
+        align-items: center;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      /* Light theme adjustments */
+      .light-theme #username-display {
+        color: var(--text-color);
+      }
+      
+      #logoutButton i {
+        color: var(--text-color);
+      }
+      
+      #logoutButton:hover i {
+        color: #e74c3c;
+        transform: scale(1.1);
+        transition: all 0.2s ease;
+      }
+      
+      /* Notification animations */
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+      
+      .pulse-animation {
+        animation: pulse 0.5s ease-in-out 3;
+      }
+      
+      .notification-card {
+        margin-bottom: 10px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        background-color: var(--light-bg);
+        transition: all 0.3s ease;
+        opacity: 1;
+        transform: translateX(0);
+      }
+      
+      .light-theme .notification-card {
+        background-color: var(--chat-bg);
+        border: 1px solid var(--border-color);
+      }
+      
+      .notification-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding: 8px;
+        gap: 8px;
+      }
+      
+      .notification-btn {
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border: none;
+        transition: all 0.2s ease;
+      }
+      
+      .notification-btn.primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      
+      .notification-btn.secondary {
+        background-color: var(--secondary-button-bg);
+        color: var(--text-color);
+      }
+      
+      .notification-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+      
+      /* Calendar data formatting */
+      .formatted-calendar {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      
+      .light-theme .formatted-calendar {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+      
+      .formatted-calendar h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+      
+      .calendar-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+      }
+      
+      .calendar-table th,
+      .calendar-table td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+      }
+      
+      .calendar-table th {
+        font-weight: bold;
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+      
+      .light-theme .calendar-table th {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      
+      .calendar-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .main-content.expanded {
+        margin-left: 0;
+      }
+
+      /* Chat Header Styles */
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        background-color: rgba(31, 41, 55, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        height: var(--header-height);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .sidebar-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+      }
+
+      .sidebar-toggle:hover {
+        transform: scale(1.1);
+      }
+
+      .header-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: var(--text-color);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+      }
+
+      .header-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 0.65rem;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+      }
+
+      /* Disabled input styling */
+      .chat-input-container.disabled {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+      
+      .chat-input-container.disabled .chat-input {
+        background-color: rgba(255, 255, 255, 0.05);
+        cursor: not-allowed;
+      }
+      
+      /* Type your query message */
+      .query-prompt {
+        text-align: center;
+        padding: 10px;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+        font-weight: 500;
+        background-color: rgba(124, 58, 237, 0.1);
+        border-radius: var(--border-radius);
+        display: none;
+      }
+      
+      /* Other FAQ item special styling */
+      .faq-item.other-faq {
+        background-color: rgba(124, 58, 237, 0.2);
+        border: 1px solid var(--primary-color);
+        font-weight: 600;
+        padding: 12px 15px; /* Slightly larger padding */
+        margin-top: 15px; /* Add some space above */
+        position: relative;
+        text-align: center; /* Center text */
+      }
+      
+      .faq-item.other-faq:hover {
+        background-color: rgba(124, 58, 237, 0.3);
+        transform: translateY(-2px); /* Slight lift effect */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+      }
+      
+      .faq-item.other-faq::before {
+        content: "👇"; /* Add emoji pointer */
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1rem;
+      }
+      
+      /* Delete history item button */
+      .delete-history-btn {
+        color: #ef4444;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      
+      .history-item:hover .delete-history-btn {
+        opacity: 0.7;
+      }
+      
+      .delete-history-btn:hover {
+        opacity: 1 !important;
+      }
+      
+      /* Clear all history button */
+      .clear-history-btn {
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+        padding: 8px 12px;
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        cursor: pointer;
+        margin: 10px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+      }
+      
+      .clear-history-btn:hover {
+        background-color: rgba(239, 68, 68, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="search-container">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search messages..."
+              id="searchInput"
+            />
+            <i class="fas fa-search search-icon"></i>
+          </div>
+          <button class="new-chat-btn" onclick="startNewChat()">
+            <i class="fas fa-plus"></i>
+            New Chat
+          </button>
+        </div>
+        <div class="chat-history" id="chatHistory">
+          <!-- Chat history items will be added here -->
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content" id="mainContent">
+        <!-- Left Side: Chat Area -->
+        <div class="chat-area">
+        <header class="chat-header">
+          <div class="header-left">
+            <button id="sidebarToggleBtn" class="sidebar-toggle">
+              <i class="fas fa-bars"></i>
+            </button>
+            <h2 id="currentChatName">AI Query Bot</h2>
+          </div>
+          <div class="header-right">
+            <div class="user-info" id="username-display">Welcome, User</div>
+            <button id="resolvedQueriesBtn" class="header-button" title="Resolved Queries">
+              <i class="fas fa-bell"></i>
+              <span id="resolvedQueriesBadge" class="badge" style="display: none;">0</span>
+            </button>
+            <button id="clearChatBtn" class="header-button" title="Clear Chat">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button id="logoutButton" class="header-button" title="Logout">
+              <i class="fas fa-sign-out-alt"></i>
+              </button>
+          </div>
+        </header>
+        <div class="chat-body" id="chatBody">
+          <!-- Welcome message will be added here -->
+        </div>
+          
+          <!-- FAQ Query History Section -->
+          <div class="faq-section">
+            <div class="faq-header" id="faqHeader">
+               <h3>Frequently Asked Questions</h3>
+              <button class="faq-toggle" id="faqToggleBtn">
+                <i class="fas fa-chevron-down" id="faqToggleIcon"></i>
+              </button>
+            </div>
+            <div class="faq-list" id="faqList" style="display: none;">
+              <!-- FAQ items will be added here dynamically -->
+              <div class="faq-loading">Loading FAQs...</div>
+            </div>
+          </div>
+          
+        <div class="chat-footer">
+          <div class="chat-input-container disabled" id="chatInputContainer">
+            <div class="chat-input-wrapper">
+              <div class="query-prompt" id="queryPrompt">Type your query...</div>
+              <!-- Add suggestion carousel here -->
+              <div class="suggestion-carousel" id="suggestionCarousel">
+                <button class="carousel-arrow carousel-prev" aria-label="Previous suggestions">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="suggestion-container">
+                  <div class="suggestion-items" id="suggestionItems">
+                    <!-- Suggestion items will be added here dynamically -->
+                  </div>
+                </div>
+                <button class="carousel-arrow carousel-next" aria-label="Next suggestions">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+              <textarea
+                id="messageInput"
+                class="chat-input"
+                placeholder="Type a message or use /query to search for information..."
+                rows="1"
+                oninput="autoResize(this)"
+                disabled
+              ></textarea>
+              <div class="input-actions">
+                <button class="action-button" onclick="toggleFileUpload()">
+                  <i class="fas fa-paperclip"></i>
+                </button>
+                <button id="queryHelpBtn" class="action-button" title="How to use query commands">
+                  <i class="fas fa-question-circle"></i>
+                </button>
+                <button
+                  class="send-button"
+                  onclick="sendMessage()"
+                  id="sendButton"
+                >
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+              <div class="file-upload-container" id="fileUploadContainer">
+                <button
+                  class="file-upload-btn"
+                  onclick="document.getElementById('fileInput').click()"
+                >
+                  <i class="fas fa-image"></i> Upload Image
+                </button>
+                <button
+                  class="file-upload-btn"
+                  onclick="document.getElementById('fileInput').click()"
+                >
+                  <i class="fas fa-file"></i> Upload File
+                </button>
+                <input type="file" id="fileInput" style="display: none" />
+              </div>
+              
+              <div class="emoji-picker-container" id="emojiPickerContainer">
+                <emoji-picker></emoji-picker>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Right Side: Admin Response Panel -->
+        <div class="admin-response-panel" id="adminResponsePanel">
+          <div class="admin-response-header">
+            <h3>Admin Responses</h3>
+            <button class="admin-response-toggle" id="adminResponseToggle">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="admin-response-list" id="adminResponseList">
+            <!-- Admin responses will be loaded here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Notifications Container for Resolved Queries -->
+      <div class="notification-container" id="resolvedQueriesContainer"></div>
+      
+      <!-- Controls for notifications -->
+      <div class="notification-controls" id="notificationControls" style="display: none;">
+        <button class="dismiss-all-btn" id="dismissAllBtn">
+          <i class="fas fa-check-circle"></i> Dismiss All
+        </button>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-backdrop">
+      <div class="modal-container">
+        <div class="modal-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3 class="modal-title">Delete Confirmation</h3>
+        </div>
+        <div class="modal-content">
+          Are you sure you want to delete this message? This action cannot be undone.
+        </div>
+        <div class="modal-actions">
+          <button id="cancelDelete" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="confirmDelete" class="modal-btn modal-btn-confirm">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add a second modal for chat deletion -->
+    <div id="deleteChatModal" class="modal-backdrop">
+      <div class="modal-container">
+        <div class="modal-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3 class="modal-title">Delete Chat</h3>
+        </div>
+        <div class="modal-content">
+          Are you sure you want to delete this entire chat conversation? This action cannot be undone.
+        </div>
+        <div class="modal-actions">
+          <button id="cancelChatDelete" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="confirmChatDelete" class="modal-btn modal-btn-confirm">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add a modal for clearing chat -->
+    <div id="clearChatModal" class="modal-backdrop">
+      <div class="modal-container">
+        <div class="modal-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3 class="modal-title">Clear Chat</h3>
+        </div>
+        <div class="modal-content">
+          Are you sure you want to clear all messages from this chat? This action cannot be undone.
+        </div>
+        <div class="modal-actions">
+          <button id="cancelClearChat" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="confirmClearChat" class="modal-btn modal-btn-confirm">Clear Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add a help modal to explain the query command -->
+    <div id="queryHelpModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>How to Use Query Commands</h2>
+          <span class="close-modal" id="closeQueryHelpModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <p>To search for specific information from our knowledge base, use the <code>/query</code> command followed by your question.</p>
+          
+          <h3>Examples:</h3>
+          <ul>
+            <li><code>/query when are the exams</code></li>
+            <li><code>/query who is the dean of engineering department</code></li>
+            <li><code>/query show academic calendar</code></li>
+          </ul>
+          
+          <p>Without the <code>/query</code> command, messages will be processed by our AI assistant for general conversation.</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Global variables
+      let currentChatId = null;
+      let chatHistory = [];
+      let isProcessing = false;
+      let queryResponseCache = {}; // Cache for storing query responses
+      let queryHistory = []; // Array to store all queries
+      
+      // Clear chat variables
+      let clearChatBtn = document.getElementById('clearChatBtn');
+      
+      // Initially hide the clear chat button until a chat is loaded
+      if (clearChatBtn) {
+        clearChatBtn.style.display = 'none';
+      }
+      
+      // Function to show the clear chat confirmation modal
+      function showClearChatModal() {
+        if (!currentChatId) {
+          alert("No active chat to clear");
+          return;
+        }
+        
+        document.getElementById('clearChatModal').classList.add('active');
+      }
+      
+      // Function to hide the clear chat confirmation modal
+      function hideClearChatModal() {
+        document.getElementById('clearChatModal').classList.remove('active');
+      }
+      
+      // Set up event listeners for the clear chat modal buttons
+      document.getElementById('cancelClearChat').addEventListener('click', hideClearChatModal);
+      document.getElementById('confirmClearChat').addEventListener('click', confirmClearChat);
+      
+      // Click outside to close clear chat modal
+      document.getElementById('clearChatModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideClearChatModal();
+        }
+      });
+      
+      // Function to clear all messages from a chat
+      async function confirmClearChat() {
+        if (!currentChatId) {
+          hideClearChatModal();
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/api/chat/${currentChatId}/messages`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+  
+          if (!response.ok) {
+            throw new Error("Failed to clear chat messages");
+          }
+  
+          const data = await response.json();
+          console.log("Chat cleared:", data);
+  
+          // Clear the chat body
+          document.getElementById("chatBody").innerHTML = "";
+          
+          // Add a welcome message
+          addMessage("Chat has been cleared. How can I help you?", "bot", true);
+  
+          // Hide the modal
+          hideClearChatModal();
+        } catch (error) {
+          console.error("Error clearing chat:", error);
+          alert("Failed to clear chat. Please try again.");
+          hideClearChatModal();
+        }
+      }
+
+      // Initialize marked options
+      marked.setOptions({
+        highlight: function (code, lang) {
+          const language = hljs.getLanguage(lang) ? lang : "plaintext";
+          return hljs.highlight(code, { language }).value;
+        },
+        langPrefix: "hljs language-",
+        breaks: true,
+        gfm: true,
+      });
+
+      // Auto-resize textarea
+      function autoResize(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+      }
+
+      // Toggle sidebar
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebarOverlay");
+        
+        sidebar.classList.toggle("active");
+        
+        // Create overlay if it doesn't exist
+        if (!overlay) {
+          const newOverlay = document.createElement("div");
+          newOverlay.id = "sidebarOverlay";
+          newOverlay.className = "sidebar-overlay";
+          newOverlay.onclick = toggleSidebar;
+          document.body.appendChild(newOverlay);
+        }
+        
+        // Toggle overlay
+        document.getElementById("sidebarOverlay").classList.toggle("active");
+      }
+
+      // Function to add a message to the chat
+      function addMessage(message, sender, isHtml = false, messageData = null) {
+        console.log("Adding message:", messageData || { message, sender, isHtml });
+        
+        try {
+          // Generate a unique ID for this message for interaction options
+          const messageId = 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+          
+          // Create message element
+          const messageElement = document.createElement("div");
+          messageElement.className = `message ${sender === 'user' ? 'user-message' : 'bot-message'}`;
+          messageElement.id = messageId;
+          
+          // Create message content container
+          const messageContent = document.createElement("div");
+          messageContent.className = "message-content";
+
+          // Create avatar
+          const avatar = document.createElement("div");
+          avatar.className = "message-avatar";
+          avatar.innerHTML = sender === "user" ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+          
+          // Add timestamp
+          const timestamp = document.createElement("div");
+          timestamp.className = "message-timestamp";
+          const now = new Date();
+          timestamp.textContent = messageData?.created_at 
+            ? new Date(messageData.created_at).toLocaleTimeString() 
+            : now.toLocaleTimeString();
+          
+          // Check if the message is potentially JSON data that needs formatting
+          if (sender === 'bot' && !isHtml && typeof message === 'string') {
+            try {
+              // Try to parse as JSON
+              const jsonObject = JSON.parse(message);
+              
+              // Check if this is academic calendar data
+              if (jsonObject && jsonObject.type && jsonObject.data) {
+                console.log("Processing JSON data response:", jsonObject.type);
+                
+                // Format the calendar data - simple formatting
+                let formattedContent = '';
+                
+                if (jsonObject.type === 'dates' || jsonObject.type === 'calendar' || jsonObject.type === 'project') {
+                  formattedContent = '<div class="formatted-calendar">';
+                  
+                  // Add a title based on type
+                  if (jsonObject.type === 'calendar') {
+                    formattedContent += '<h3>Academic Calendar</h3>';
+                  } else if (jsonObject.type === 'project') {
+                    formattedContent += '<h3>Project Submission Deadlines</h3>';
+                  } else {
+                    formattedContent += '<h3>Important Dates</h3>';
+                  }
+                  
+                  // Add the data items in a table
+                  formattedContent += '<table class="calendar-table"><tr><th>Activity</th><th>Date</th></tr>';
+                  
+                  jsonObject.data.forEach(item => {
+                    if (item.Activity && item.Date) {
+                      formattedContent += `<tr><td>${item.Activity}</td><td>${item.Date}</td></tr>`;
+                    }
+                  });
+                  
+                  formattedContent += '</table></div>';
+                  
+                  // Set isHtml to true since we generated HTML
+                  isHtml = true;
+                  message = formattedContent;
+                }
+              }
+            } catch (e) {
+              // Not JSON or couldn't be parsed, continue with normal processing
+              console.log("Message is not valid JSON, continuing with normal processing");
+            }
+          }
+          
+          // Create message text element
+          const messageText = document.createElement("div");
+          
+          // Process HTML content if needed
+          if (isHtml && sender === 'bot') {
+            console.log("Processing HTML content");
+            messageText.className = "message-text markdown-content";
+            
+            try {
+              // Set HTML content, assuming it's already sanitized
+              messageText.innerHTML = message;
+              
+              // Apply syntax highlighting to code blocks
+              setTimeout(() => {
+                const codeBlocks = messageText.querySelectorAll('pre code');
+                if (codeBlocks.length > 0) {
+                  codeBlocks.forEach((block) => {
+                    hljs.highlightElement(block);
+                  });
+                }
+              }, 0);
+            } catch (error) {
+              console.error("Error processing HTML content:", error);
+              messageText.textContent = message;
+            }
+          } else {
+            // Regular text message
+            messageText.className = "message-text";
+            messageText.textContent = message;
+          }
+          
+          // Add actions buttons for messages
+          const actionsDiv = document.createElement("div");
+          actionsDiv.className = "message-actions";
+          actionsDiv.innerHTML = `
+            <button class="message-action-btn" onclick="copyMessage('${messageId}')" title="Copy message">
+              <i class="far fa-copy"></i>
+            </button>
+            <button class="message-action-btn" onclick="deleteMessage('${messageId}')" title="Delete message">
+              <i class="far fa-trash-alt"></i>
+            </button>
+          `;
+          
+          // Assemble the message in the right order
+          messageContent.appendChild(actionsDiv);
+          messageContent.appendChild(messageText);
+          messageContent.appendChild(timestamp);
+
+          messageElement.appendChild(avatar);
+          messageElement.appendChild(messageContent);
+
+          console.log("Message element created");
+
+          // Add to chat body
+          const chatBody = document.getElementById("chatBody");
+          if (chatBody) {
+            chatBody.appendChild(messageElement);
+          console.log("Message added to chat body");
+
+          // Scroll to the new message
+          scrollToLatestMessage();
+          } else {
+            console.error("Chat body element not found");
+          }
+        } catch (error) {
+          console.error("Error in addMessage function:", error);
+        }
+      }
+
+      // Show typing indicator
+      function showTypingIndicator() {
+        const chatBody = document.getElementById("chatBody");
+        const typingDiv = document.createElement("div");
+        typingDiv.className = "message bot-message typing-indicator-container";
+        typingDiv.id = "typingIndicator";
+        typingDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+        chatBody.appendChild(typingDiv);
+        scrollToLatestMessage();
+        return typingDiv;
+      }
+
+      // Remove typing indicator 
+      function removeTypingIndicator() {
+        const typingIndicator = document.getElementById("typingIndicator");
+        if (typingIndicator) {
+          typingIndicator.remove();
+        } else {
+          // Try alternate selector for backward compatibility
+          const indicators = document.getElementsByClassName("typing-indicator-container");
+          if (indicators.length > 0) {
+            Array.from(indicators).forEach(indicator => indicator.remove());
+          } else {
+            // Legacy fallback
+            const chatBody = document.getElementById("chatBody");
+            const typingElements = chatBody.querySelectorAll(".typing-indicator");
+            typingElements.forEach(element => {
+              const messageElement = element.closest(".message");
+              if (messageElement) {
+                messageElement.remove();
+              }
+            });
+          }
+        }
+      }
+
+      // Function to check for predefined responses on the server
+      async function checkForPredefinedResponse(message) {
+        try {
+          console.log("Checking for predefined response for:", message);
+          
+          // Make a request to the server to check for predefined responses
+          const response = await fetch('/api/check-predefined', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+          });
+          
+          if (!response.ok) {
+            console.error(`Server responded with status ${response.status}`);
+            return null;
+          }
+          
+          const data = await response.json();
+          
+          if (data.found && data.response) {
+            console.log("Found predefined response:", data.response);
+            return data.response;
+          }
+          
+          return null;
+        } catch (error) {
+          console.error("Error checking for predefined response:", error);
+          return null;
+        }
+      }
+
+      // Function to check if message contains FAQ-related keywords
+      function isFaqQuery(message) {
+        const faqKeywords = ['academic calendar', 'when', 'date', 'schedule', 'exam', 'break', 'semester'];
+        const normalizedMessage = message.toLowerCase().trim();
+        return faqKeywords.some(keyword => normalizedMessage.includes(keyword));
+      }
+      
+      // Function to preprocess a message to check if it's a FAQ
+      async function preprocessFaqMessage(message) {
+        if (isFaqQuery(message)) {
+          try {
+            const response = await fetch('/api/faq-search', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ query: message })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.formatted) {
+                return {
+                  handled: true,
+                  formatted: data.formatted
+                };
+              }
+            }
+          } catch (error) {
+            console.error('Error preprocessing FAQ message:', error);
+          }
+        }
+        return { handled: false };
+      }
+      
+      // Update the sendMessage function to handle FAQs
+      async function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const messageText = messageInput.value.trim();
+        
+        // Don't send empty messages
+        if (!messageText) return;
+        
+        // Clear input early for better UX
+        messageInput.value = '';
+        autoResize(messageInput);
+        
+        // Check if we're already processing a message
+        if (isProcessing) {
+          console.error('Already processing a message, please wait...');
+          return;
+        }
+
+        // Set processing flag
+        isProcessing = true;
+        
+        // Add user message to chat
+        addMessage(messageText, 'user');
+
+        // Show typing indicator
+        showTypingIndicator();
+        
+        // First check if it's a FAQ-related query
+        const faqResult = await preprocessFaqMessage(messageText);
+        if (faqResult.handled) {
+          // Remove typing indicator
+          removeTypingIndicator();
+          
+          // Add the formatted response to the chat
+          addMessage(faqResult.formatted, 'bot', true, true);
+          
+          // Scroll to latest message
+          scrollToLatestMessage();
+          
+          // Reset processing flag
+          isProcessing = false;
+          return;
+        }
+        
+        // Check if there's a previous admin response for this query
+        const normalizedQuery = messageText.toLowerCase().trim();
+        const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        
+        // Look for matching queries in previous admin responses
+        const matchingResponse = storedNotifications.find(notification => {
+          const notificationQuery = notification.query.toLowerCase().trim();
+          return notificationQuery === normalizedQuery ||
+            (normalizedQuery.includes(notificationQuery) && notificationQuery.length > 10) ||
+            (notificationQuery.includes(normalizedQuery) && normalizedQuery.length > 10);
+        });
+        
+        if (matchingResponse) {
+          console.log('Found matching previous response:', matchingResponse);
+          
+          // Add bot response
+          removeTypingIndicator();
+          addMessage(matchingResponse.response, 'bot', true);
+          scrollToLatestMessage();
+          
+          // Reset processing flag
+          isProcessing = false;
+          return;
+        }
+        
+        // Check if it's a /query command or if the query doesn't match predefined answers
+        if (messageText.startsWith('/query')) {
+          const actualQuery = messageText.substring(6).trim();
+          
+          if (!actualQuery) {
+            // Handle empty query
+            removeTypingIndicator();
+            addMessage("Please specify a query after the /query command.", 'bot');
+            scrollToLatestMessage();
+            isProcessing = false;
+            return;
+          }
+          
+          // Make API call to check if we have a predefined response
+          try {
+            const predefinedCheck = await fetch('/api/check-predefined', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ message: actualQuery })
+            });
+            
+            if (predefinedCheck.ok) {
+              const predefinedData = await predefinedCheck.json();
+              
+              if (predefinedData.found) {
+                // We found a predefined response, use it
+                removeTypingIndicator();
+                addMessage(predefinedData.response, 'bot', true, true);
+                scrollToLatestMessage();
+                isProcessing = false;
+                return;
+              } else {
+                // No predefined response found, save as undefined query
+                try {
+                  await saveUndefinedQuery(actualQuery);
+                  removeTypingIndicator();
+                  addMessage("Your query has been submitted to our administrators. We'll get back to you with an answer soon.", 'bot');
+                  scrollToLatestMessage();
+                  isProcessing = false;
+                  return;
+                } catch (saveError) {
+                  console.error('Error saving undefined query:', saveError);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error checking predefined response:', error);
+          }
+        }
+        
+        // If we got here, we need to send the message to the chatbot API
+        try {
+          // Generate a chat ID if we don't have one
+          if (!currentChatId) {
+            currentChatId = generateUUID();
+          }
+          
+          // Make API call to backend endpoint
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: messageText,
+              chatId: currentChatId
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('API response was not ok');
+          }
+          
+          const data = await response.json();
+          
+          // If the bot couldn't provide a definite answer, save as undefined query
+          if (data.uncertain || data.response.includes("I don't have specific information about that") || 
+              data.response.includes("I don't know") || data.response.includes("I'm not sure")) {
+            try {
+              await saveUndefinedQuery(messageText);
+            } catch (saveError) {
+              console.error('Error saving uncertain query:', saveError);
+            }
+          }
+          
+          // Remove typing indicator
+          removeTypingIndicator();
+          
+          // Add bot response
+          addMessage(data.response, 'bot', true, true);
+          
+          // Show clear chat button if it's hidden
+          if (clearChatBtn && clearChatBtn.style.display === 'none') {
+            clearChatBtn.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error sending message:', error);
+          
+          // Handle error and save as undefined query
+          try {
+            await saveUndefinedQuery(messageText);
+            removeTypingIndicator();
+            addMessage("I'm having trouble understanding that. Your query has been submitted to our administrators for review.", 'bot');
+          } catch (saveError) {
+            console.error('Error saving error query:', saveError);
+            removeTypingIndicator();
+            addMessage("An error occurred. Please try again later.", 'bot');
+          }
+        } finally {
+          // Reset processing flag
+          isProcessing = false;
+          
+          // Scroll to latest message
+          scrollToLatestMessage();
+        }
+      }
+      
+      // Function to save undefined query
+      async function saveUndefinedQuery(query) {
+        try {
+          const response = await fetch('/api/undefined-query', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to save undefined query');
+          }
+          
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error('Error saving undefined query:', error);
+          throw error;
+        }
+      }
+      
+      // Update the sendFaqQuestion function to use the new preprocessing
+      async function sendFaqQuestion(question, answer) {
+        try {
+          // Get message input element
+          const messageInput = document.getElementById('messageInput');
+          
+          // Add question to chat as user message
+          addMessage(question, 'user');
+          
+          // Clear input field if it has content
+          if (messageInput) {
+            messageInput.value = '';
+          }
+          
+          // Show typing indicator to simulate bot thinking
+          const typingIndicator = showTypingIndicator();
+          
+          // Add bot response after a short delay
+          setTimeout(() => {
+            // Remove typing indicator
+            if (typingIndicator) {
+              removeTypingIndicator();
+            }
+            
+            // Add answer as bot message with markdown support
+            const isMarkdown = answer.includes('**') || answer.includes('#') || answer.includes('\n');
+            addMessage(answer, 'bot', true, isMarkdown);
+            
+            // Scroll to the latest message
+            scrollToLatestMessage();
+            
+            // Save the interaction to history (if we have a chat ID)
+            if (!currentChatId) {
+              currentChatId = generateUUID();
+            }
+            
+            // Show clear chat button if hidden
+            if (clearChatBtn && clearChatBtn.style.display === 'none') {
+              clearChatBtn.style.display = 'block';
+            }
+            
+            // Save to server if possible
+            try {
+              saveFaqToHistory(question, answer);
+            } catch (e) {
+              console.error("Error saving FAQ interaction:", e);
+            }
+          }, 500);
+        } catch (error) {
+          console.error('Error in sendFaqQuestion:', error);
+          // Add error message
+          addMessage("Sorry, I couldn't process your request. Please try again.", 'bot');
+        }
+      }
+
+      // Handle further help button click
+      function handleFurtherHelp() {
+        // Show FAQ suggestions again
+        const messageInput = document.getElementById("messageInput");
+        const suggestionCarousel = window.suggestionCarousel;
+        if (suggestionCarousel) {
+          suggestionCarousel.show();
+        }
+        
+        // Add a message indicating we're ready to help
+        addMessage("I'm here to help! You can ask me about the academic calendar or select from the suggestions above.", "bot");
+      }
+
+      // Handle end chat button click
+      function handleEndChat() {
+        // Add thank you message
+        addMessage("Thank you for using our service! Have a great day!", "bot");
+        
+        // Clear the input
+        const messageInput = document.getElementById("messageInput");
+        messageInput.value = "";
+        
+        // Hide suggestion carousel if visible
+        const suggestionCarousel = window.suggestionCarousel;
+        if (suggestionCarousel) {
+          suggestionCarousel.hide();
+        }
+      }
+
+      // Load chat history
+      async function loadChatHistory() {
+        try {
+          // Set a timeout for the fetch operation
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+          console.log("Fetching chat history...");
+          const response = await fetch("/api/chat-history", {
+            signal: controller.signal,
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+          });
+
+          // Clear the timeout
+          clearTimeout(timeoutId);
+
+          console.log("Chat history response status:", response.status);
+
+          if (response.status === 401) {
+            console.log("User not authenticated, redirecting to login");
+            window.location.href = "/login";
+            return;
+          }
+
+          if (response.status === 500) {
+            console.error("Server error when loading chat history");
+            throw new Error("Database error on server");
+          }
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed to load chat history: ${response.status} ${response.statusText}`
+            );
+          }
+
+          // Try to parse the JSON response
+          let data;
+          try {
+            data = await response.json();
+          } catch (jsonError) {
+            console.error("Error parsing chat history JSON:", jsonError);
+            throw new Error("Invalid response format from server");
+          }
+
+          // Check if data has the expected format
+          if (!data || !Array.isArray(data.chats)) {
+            console.error("Invalid chat history data format:", data);
+            throw new Error("Invalid chat history data format");
+          }
+
+          chatHistory = data.chats;
+          console.log(
+            "Chat history loaded successfully:",
+            chatHistory.length,
+            "chats"
+          );
+
+          // Render chat history
+          const chatHistoryContainer = document.getElementById("chatHistory");
+          chatHistoryContainer.innerHTML = "";
+
+          if (chatHistory.length === 0) {
+            chatHistoryContainer.innerHTML =
+              '<div class="history-item">No chats yet</div>';
+            return;
+          }
+
+          // Add a "Clear All History" button at the top
+          const clearAllBtn = document.createElement('button');
+          clearAllBtn.className = 'clear-history-btn';
+          clearAllBtn.innerHTML = '<i class="fas fa-trash"></i> Clear All History';
+          clearAllBtn.onclick = showClearAllHistoryModal;
+          chatHistoryContainer.appendChild(clearAllBtn);
+
+          chatHistory.forEach((chat) => {
+            const historyItem = document.createElement("div");
+            historyItem.className = `history-item ${
+              chat.id === currentChatId ? "active" : ""
+            }`;
+            historyItem.innerHTML = `
+              <i class="fas fa-comments"></i>
+              <div class="chat-name">${chat.chat_name || "Unnamed Chat"}</div>
+              <button class="history-action-btn" onclick="showDeleteChatModal(${chat.id}, event)" title="Delete chat">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            `;
+            
+            // Make the main part of the item clickable, but not the delete button
+            const chatName = historyItem.querySelector('.chat-name');
+            if (chatName) {
+              chatName.style.cursor = 'pointer';
+              chatName.onclick = (e) => {
+                e.stopPropagation();
+                loadChat(chat.id);
+              };
+            }
+            
+            chatHistoryContainer.appendChild(historyItem);
+          });
+        } catch (error) {
+          console.error("Error loading chat history:", error);
+
+          // Check for network errors specifically
+          if (error.name === "AbortError") {
+            console.error("Chat history request timed out");
+            throw new Error("Request timed out. Server may be unavailable.");
+          }
+
+          if (
+            error.name === "TypeError" &&
+            error.message.includes("Failed to fetch")
+          ) {
+            console.error("Network error when fetching chat history");
+            throw new Error("Network error. Server may be unavailable.");
+          }
+
+          // Re-throw the error to be handled by the caller
+          throw error;
+        }
+      }
+
+      // Function to show the clear all history confirmation modal
+      function showClearAllHistoryModal() {
+        // Create modal if it doesn't exist
+        if (!document.getElementById('clearAllHistoryModal')) {
+          const modalHtml = `
+            <div id="clearAllHistoryModal" class="modal-backdrop">
+              <div class="modal-container">
+                <div class="modal-header">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <h3 class="modal-title">Clear All Chat History</h3>
+                </div>
+                <div class="modal-content">
+                  Are you sure you want to delete all chat history? This action cannot be undone.
+                </div>
+                <div class="modal-actions">
+                  <button id="cancelClearAllHistory" class="modal-btn modal-btn-cancel">Cancel</button>
+                  <button id="confirmClearAllHistory" class="modal-btn modal-btn-confirm">Clear All</button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Append modal to body
+          const modalContainer = document.createElement('div');
+          modalContainer.innerHTML = modalHtml;
+          document.body.appendChild(modalContainer.firstElementChild);
+          
+          // Set up event listeners
+          document.getElementById('cancelClearAllHistory').addEventListener('click', hideClearAllHistoryModal);
+          document.getElementById('confirmClearAllHistory').addEventListener('click', clearAllChatHistory);
+          
+          // Click outside to close
+          document.getElementById('clearAllHistoryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+              hideClearAllHistoryModal();
+            }
+          });
+        }
+        
+        // Show the modal
+        document.getElementById('clearAllHistoryModal').classList.add('active');
+      }
+
+      // Function to hide the clear all history modal
+      function hideClearAllHistoryModal() {
+        const modal = document.getElementById('clearAllHistoryModal');
+        if (modal) {
+          modal.classList.remove('active');
+        }
+      }
+
+      // Function to clear all chat history
+      async function clearAllChatHistory() {
+        try {
+          // Try the API endpoint first
+          try {
+            const response = await fetch("/api/chat-history/clear", {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (response.ok) {
+              console.log("All chat history cleared from server");
+            } else {
+              console.warn("Server API for clearing all chat history not available or failed");
+              // If the server API fails, try to clear history items one by one
+              for (const chat of chatHistory) {
+                try {
+                  await fetch(`/api/chat/${chat.id}`, {
+                    method: "DELETE",
+                  });
+                  console.log(`Deleted chat ${chat.id}`);
+                } catch (e) {
+                  console.error(`Failed to delete chat ${chat.id}:`, e);
+                }
+              }
+            }
+          } catch (apiError) {
+            console.warn("Error with clear all API, falling back to individual deletions:", apiError);
+            // If API call fails completely, try to clear history items one by one
+            for (const chat of chatHistory) {
+              try {
+                await fetch(`/api/chat/${chat.id}`, {
+                  method: "DELETE",
+                });
+                console.log(`Deleted chat ${chat.id}`);
+              } catch (e) {
+                console.error(`Failed to delete chat ${chat.id}:`, e);
+              }
+            }
+          }
+
+          console.log("All chat history cleared");
+          
+          // Reset current chat ID and clear chat body
+          currentChatId = null;
+          document.getElementById("currentChatName").textContent = "New Chat";
+          document.getElementById("chatBody").innerHTML = "";
+          
+          // Hide clear chat button for new chat
+          if (clearChatBtn) {
+            clearChatBtn.style.display = 'none';
+          }
+          
+          // Add welcome message
+          addWelcomeMessage();
+          
+          // Reload chat history (will show empty state)
+          await loadChatHistory();
+          
+          // Hide the modal
+          hideClearAllHistoryModal();
+        } catch (error) {
+          console.error("Error clearing all chat history:", error);
+          alert("Failed to clear chat history. Please try again.");
+          hideClearAllHistoryModal();
+        }
+      }
+
+      // Load a specific chat
+      async function loadChat(chatId) {
+        try {
+          const response = await fetch(`/api/chat/${chatId}`);
+          console.log("Load chat response status:", response.status);
+
+          if (response.status === 401) {
+            // User is not authenticated, redirect to login page
+            console.log("User not authenticated, redirecting to login");
+            window.location.href = "/login";
+            return;
+          }
+
+          if (!response.ok) throw new Error("Failed to load chat");
+
+          const data = await response.json();
+          currentChatId = chatId;
+
+          // Update chat name
+          const chat = chatHistory.find((c) => c.id === chatId);
+          if (chat) {
+            document.getElementById("currentChatName").textContent =
+              chat.chat_name;
+          }
+          
+          // Show clear chat button when a chat is loaded
+          if (clearChatBtn) {
+            clearChatBtn.style.display = 'flex';
+          }
+
+          // Add messages one by one with a small delay between them
+          // This helps ensure the DOM has time to process each message
+          const addMessages = async (messages) => {
+            for (const message of messages) {
+              // Check if the message has formatting that needs to be rendered as HTML
+              const isHtml = message.sender === "bot" && 
+                            (message.containsFormatting === true || 
+                             (message.message.includes('<') && message.message.includes('>')));
+              
+              // For additional security, sanitize HTML before rendering
+              let content = message.message;
+              
+              // Add message with proper HTML rendering
+              addMessage(content, message.sender, isHtml, message);
+              
+              // Small delay between messages to ensure proper rendering
+              await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+          };
+
+          // Clear chat body
+          const chatBody = document.getElementById("chatBody");
+          chatBody.innerHTML = "";
+
+          // Add messages
+          await addMessages(data.messages);
+
+          // Update active state in sidebar
+          document.querySelectorAll(".history-item").forEach((item) => {
+            item.classList.remove("active");
+            if (item.querySelector(".chat-name").textContent === chat.chat_name) {
+              item.classList.add("active");
+            }
+          });
+
+          // Close sidebar on mobile
+          if (window.innerWidth <= 768) {
+            document.getElementById("sidebar").classList.remove("active");
+            const overlay = document.getElementById("sidebarOverlay");
+            if (overlay) overlay.classList.remove("active");
+          }
+          
+          // Scroll to bottom of chat
+          scrollToLatestMessage();
+        } catch (error) {
+          console.error("Error loading chat:", error);
+          // Notify the user that the chat couldn't be loaded
+          alert("Failed to load the chat. Please try again later.");
+        }
+      }
+
+      // Start a new chat
+      function startNewChat() {
+        currentChatId = null;
+        document.getElementById("currentChatName").textContent = "New Chat";
+        document.getElementById("chatBody").innerHTML = "";
+        
+        // Hide clear chat button for new chat
+        if (clearChatBtn) {
+          clearChatBtn.style.display = 'none';
+        }
+
+        // Add welcome message
+        // Update sidebar
+        document.querySelectorAll(".history-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+
+        // Close sidebar on mobile
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("active");
+          const overlay = document.getElementById("sidebarOverlay");
+          if (overlay) overlay.classList.remove("active");
+        }
+
+        // Focus input
+        document.getElementById("messageInput").focus();
+      }
+
+      // Event Listeners
+      document
+        .getElementById("messageInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Set display: none for emoji picker container initially
+        const emojiPickerContainer = document.getElementById("emojiPickerContainer");
+        if (emojiPickerContainer) {
+          emojiPickerContainer.style.display = "none";
+        }
+        
+        // Hide file upload container initially
+        const fileUploadContainer = document.getElementById("fileUploadContainer");
+        if (fileUploadContainer) {
+          fileUploadContainer.classList.remove("show");
+        }
+        
+        // Disable chat input by default
+        const chatInputContainer = document.getElementById("chatInputContainer");
+        const messageInput = document.getElementById("messageInput");
+        const queryPrompt = document.getElementById("queryPrompt");
+        
+        // Check for previous state
+        const chatInputEnabled = localStorage.getItem('chatInputEnabled') === 'true';
+        
+        if (chatInputEnabled) {
+          // Restore enabled state
+          if (chatInputContainer) chatInputContainer.classList.remove("disabled");
+          if (messageInput) messageInput.disabled = false;
+          if (queryPrompt) queryPrompt.style.display = 'block';
+          console.log("Chat input restored to enabled state");
+        } else {
+          // Keep disabled by default
+          if (chatInputContainer) chatInputContainer.classList.add("disabled");
+          if (messageInput) messageInput.disabled = true;
+          if (queryPrompt) queryPrompt.style.display = 'none';
+        }
+        
+        // Add touch event handlers for better mobile interaction
+        document.addEventListener('touchstart', handleTouchStart, false);
+        document.addEventListener('touchmove', handleTouchMove, false);
+        
+        // Get user info and update username display
+        try {
+          await fetchUserInfo();
+        } catch (error) {
+          console.error("Failed to fetch user info:", error);
+        }
+        
+        // Setup logout functionality
+        const logoutLink = document.getElementById('logoutLink');
+        if (logoutLink) {
+          logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+          });
+        }
+        
+        // Setup the logout button in header
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+          logoutButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+          });
+        }
+        
+        // Try to fetch chat history from the server
+        try {
+          await loadChatHistory();
+        } catch (error) {
+          console.error("Failed to load chat history:", error);
+        }
+        
+        // Initialize FAQs
+        loadFaqs();
+
+        // Adjust layout based on screen size
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        window.addEventListener("resize", updateLogoutButton);
+      });
+      
+      // Function to handle resize events
+      function handleResize() {
+        const width = window.innerWidth;
+        
+        // Close sidebar on small screens
+        if (width <= 768) {
+          document.getElementById("sidebar").classList.remove("active");
+          const overlay = document.getElementById("sidebarOverlay");
+          if (overlay) overlay.classList.remove("active");
+        }
+        
+        // Adjust emoji picker container position
+        const emojiPicker = document.getElementById("emojiPickerContainer");
+        if (width <= 480) {
+          emojiPicker.style.right = "auto";
+          emojiPicker.style.left = "0";
+        } else {
+          emojiPicker.style.right = "0";
+          emojiPicker.style.left = "auto";
+        }
+      }
+      
+      // Scroll to the latest message
+      function scrollToLatestMessage() {
+        const chatBody = document.getElementById("chatBody");
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+      
+      // Update the logout button to support mobile
+      function updateLogoutButton() {
+        const logoutBtn = document.querySelector(".logout-btn");
+        
+        // Check if the element exists before trying to modify it
+        if (logoutBtn) {
+        if (window.innerWidth <= 480) {
+          logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i><span> Logout</span>';
+        } else {
+          logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Logout';
+          }
+        }
+      }
+      
+      // Call updateLogoutButton on page load and resize
+      document.addEventListener("DOMContentLoaded", updateLogoutButton);
+      window.addEventListener("resize", updateLogoutButton);
+
+      
+      function toggleTheme() {
+        document.body.classList.toggle('light-theme');
+        const themeIcon = document.querySelector('#themeToggleBtnRemoved i');
+        
+        if (document.body.classList.contains('light-theme')) {
+          themeIcon.classList.remove('fa-moon');
+          themeIcon.classList.add('fa-sun');
+          localStorage.setItem('theme', 'light');
+        } else {
+          themeIcon.classList.remove('fa-sun');
+          themeIcon.classList.add('fa-moon');
+          localStorage.setItem('theme', 'dark');
+        }
+      }
+
+      // Add logout function
+      async function logout() {
+        try {
+          // Completely clear all session data and chat history
+          // Save the username if "Remember Me" is enabled
+          const rememberedUsername = localStorage.getItem("rememberedUsername");
+          const rememberMeEnabled = localStorage.getItem("rememberMe");
+          
+          // Clear all localStorage and sessionStorage
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Restore only the username if Remember Me was enabled
+          if (rememberedUsername && rememberMeEnabled === "true") {
+            localStorage.setItem("rememberedUsername", rememberedUsername);
+            localStorage.setItem("rememberMe", "true");
+          }
+          
+          // Set a flag to indicate logged out status
+          sessionStorage.setItem("loggedOut", "true");
+          
+          // Clear any cookies that might be related to the session
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+          
+          // Clear any chat-specific data structures
+          if (window.chatSessions) window.chatSessions = {};
+          if (window.chatHistory) window.chatHistory = [];
+          
+          // Try to log out via server API if available
+          try {
+            const response = await fetch("/api/logout", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              credentials: "same-origin" // Include cookies with the request
+            });
+            
+            if (!response.ok) {
+              console.warn("Server-side logout may not have completed successfully");
+            }
+          } catch (serverError) {
+            console.warn("Could not reach server for logout:", serverError);
+            // Continue with client-side logout even if server-side fails
+          }
+          
+          // Redirect to landing page
+          console.log("Logging out and redirecting to landing page");
+          
+          // Use a timeout to ensure all cleanup is completed before redirecting
+          setTimeout(() => {
+            // Check for landing page or go to index
+            if (window.location.pathname.includes('/Chatbot.html')) {
+          window.location.href = "/index.html";
+            } else {
+              // Try to get to the root of the site
+              const baseUrl = window.location.origin;
+              window.location.href = baseUrl + "/index.html";
+            }
+          }, 100);
+        } catch (error) {
+          console.error("Error during logout:", error);
+          alert("An error occurred during logout. Please try again.");
+          // Try to redirect anyway
+          window.location.href = "/index.html";
+        }
+      }
+
+      // Add new functions for enhanced features
+      function toggleEmojiPicker() {
+        const container = document.getElementById("emojiPickerContainer");
+        if (container.style.display === "block") {
+          container.style.display = "none";
+        } else {
+          // Hide file upload container if it's open
+          document.getElementById("fileUploadContainer").classList.remove("show");
+          container.style.display = "block";
+        }
+      }
+
+      function toggleFileUpload() {
+        const container = document.getElementById("fileUploadContainer");
+        container.classList.toggle("show");
+        // Hide emoji picker if it's open
+        document.getElementById("emojiPickerContainer").style.display = "none";
+      }
+
+      function copyMessage(messageId) {
+        try {
+          const message = document.getElementById(messageId);
+          if (!message) {
+            console.error("Message element not found:", messageId);
+            return;
+          }
+          
+          const messageTextEl = message.querySelector(".message-text");
+          
+          // Get either the plain text or the actual text content (not HTML)
+          let textToCopy;
+          
+          if (messageTextEl.classList.contains("markdown-content")) {
+            // For HTML content, get the cleaned text version
+            textToCopy = messageTextEl.innerText || messageTextEl.textContent;
+          } else {
+            // For plain text messages
+            textToCopy = messageTextEl.textContent;
+          }
+          
+          // Copy to clipboard
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            // Show copy success feedback
+            const copyBtn = message.querySelector(".fa-copy").parentElement;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            
+            // Provide visual feedback
+            const feedbackDiv = document.createElement("div");
+            feedbackDiv.className = "copy-feedback";
+            feedbackDiv.textContent = "Copied to clipboard!";
+            feedbackDiv.style.position = "absolute";
+            feedbackDiv.style.top = "-40px";
+            feedbackDiv.style.left = "50%";
+            feedbackDiv.style.transform = "translateX(-50%)";
+            feedbackDiv.style.backgroundColor = "rgba(16, 185, 129, 0.8)";
+            feedbackDiv.style.color = "white";
+            feedbackDiv.style.padding = "4px 12px";
+            feedbackDiv.style.borderRadius = "4px";
+            feedbackDiv.style.fontSize = "12px";
+            feedbackDiv.style.zIndex = "50";
+            
+            message.style.position = "relative";
+            message.appendChild(feedbackDiv);
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+              copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+              message.removeChild(feedbackDiv);
+            }, 2000);
+          }).catch(err => {
+            console.error("Failed to copy text: ", err);
+            alert("Failed to copy text to clipboard");
+          });
+        } catch (error) {
+          console.error("Error in copyMessage:", error);
+        }
+      }
+
+      function editMessage(messageId) {
+        const message = document.getElementById(messageId);
+        const text = message.querySelector(".message-text").textContent;
+        const input = document.getElementById("messageInput");
+        input.value = text;
+        input.focus();
+        // Add logic to update the message
+      }
+
+      // Delete modal variables
+      let currentDeleteTarget = null;
+      
+      // Function to show the delete confirmation modal
+      function showDeleteModal(messageId) {
+        currentDeleteTarget = messageId;
+        document.getElementById('deleteModal').classList.add('active');
+      }
+      
+      // Function to hide the delete confirmation modal
+      function hideDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+        currentDeleteTarget = null;
+      }
+      
+      // Set up event listeners for the modal buttons
+      document.getElementById('cancelDelete').addEventListener('click', hideDeleteModal);
+      document.getElementById('confirmDelete').addEventListener('click', confirmDeleteMessage);
+      
+      // Click outside to close
+      document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideDeleteModal();
+        }
+      });
+      
+      // Function to execute when delete is confirmed
+      function confirmDeleteMessage() {
+        if (!currentDeleteTarget) return;
+        
+        const messageId = currentDeleteTarget;
+        const message = document.getElementById(messageId);
+        
+        if (!message) {
+          console.error("Message element not found:", messageId);
+          hideDeleteModal();
+          return;
+        }
+        
+        // Check if we have a database ID for this message
+        const dbId = message.getAttribute("data-db-id");
+        
+        if (dbId && currentChatId) {
+          // Call API to delete message from database
+          fetch(`/api/message/${dbId}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error("Failed to delete message from database");
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Message deleted from database:", data);
+            
+            // Visual feedback - fade out animation
+            message.style.transition = "opacity 0.3s ease";
+            message.style.opacity = "0";
+            
+            // Remove after animation completes
+            setTimeout(() => {
+              try {
+                message.parentNode.removeChild(message);
+              } catch (removeError) {
+                console.error("Error removing message element:", removeError);
+              }
+            }, 300);
+            
+            // Hide the modal
+            hideDeleteModal();
+          })
+          .catch(error => {
+            console.error("Error deleting message from database:", error);
+            alert("Failed to delete message. Please try again.");
+            hideDeleteModal();
+          });
+        } else {
+          // For local-only messages (not yet saved to DB)
+          // Visual feedback - fade out animation
+          message.style.transition = "opacity 0.3s ease";
+          message.style.opacity = "0";
+          
+          // Remove after animation completes
+          setTimeout(() => {
+            try {
+              message.parentNode.removeChild(message);
+            } catch (removeError) {
+              console.error("Error removing message:", removeError);
+            }
+          }, 300);
+          
+          // Hide the modal
+          hideDeleteModal();
+        }
+      }
+
+      // Function to delete a message
+      function deleteMessage(messageId) {
+        try {
+          showDeleteModal(messageId);
+        } catch (error) {
+          console.error("Error in deleteMessage:", error);
+        }
+      }
+
+      // Add keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "n") {
+          e.preventDefault();
+          startNewChat();
+        } else if (e.ctrlKey && e.key === "/") {
+          e.preventDefault();
+          document.getElementById("messageInput").focus();
+        }
+      });
+      
+      // FAQ toggle functionality
+      document.addEventListener('DOMContentLoaded', () => {
+        const faqToggleBtn = document.getElementById('faqToggleBtn');
+        const faqList = document.getElementById('faqList');
+        const faqToggleIcon = document.getElementById('faqToggleIcon');
+        
+        if (faqToggleBtn) {
+          faqToggleBtn.addEventListener('click', () => {
+            // Toggle FAQ list visibility
+            if (faqList.style.display === 'none') {
+              faqList.style.display = 'block';
+              faqToggleIcon.classList.remove('fa-chevron-down');
+              faqToggleIcon.classList.add('fa-chevron-up');
+            } else {
+              faqList.style.display = 'none';
+              faqToggleIcon.classList.remove('fa-chevron-up');
+              faqToggleIcon.classList.add('fa-chevron-down');
+            }
+          });
+        }
+        
+        // Load FAQs once at page load, not on hover
+        loadFaqs();
+      });
+
+      // Initialize emoji picker
+      document.addEventListener("DOMContentLoaded", () => {
+        const picker = document.querySelector("emoji-picker");
+        if (picker) {
+        picker.addEventListener("emoji-click", (event) => {
+          const input = document.getElementById("messageInput");
+            if (input) {
+          input.value += event.detail.unicode;
+          input.focus();
+            }
+        });
+        }
+      });
+
+      // Touch event variables
+      let xDown = null;
+      let yDown = null;
+      
+      function handleTouchStart(evt) {
+        const firstTouch = evt.touches[0];
+        xDown = firstTouch.clientX;
+        yDown = firstTouch.clientY;
+      }
+      
+      function handleTouchMove(evt) {
+        if (!xDown || !yDown) {
+          return;
+        }
+        
+        const xUp = evt.touches[0].clientX;
+        const yUp = evt.touches[0].clientY;
+        
+        const xDiff = xDown - xUp;
+        const yDiff = yDown - yUp;
+        
+        // Only respond to horizontal swipes, not vertical
+        if (Math.abs(xDiff) > Math.abs(yDiff)) {
+          if (xDiff > 50) {
+            // Swiped left - close sidebar if open
+            if (window.innerWidth <= 768 && document.getElementById("sidebar").classList.contains("active")) {
+              toggleSidebar();
+            }
+          } else if (xDiff < -50) {
+            // Swiped right - open sidebar if closed
+            if (window.innerWidth <= 768 && !document.getElementById("sidebar").classList.contains("active")) {
+              toggleSidebar();
+            }
+          }
+        }
+        
+        // Reset values
+        xDown = null;
+        yDown = null;
+      }
+
+      // Delete chat modal variables
+      let currentDeleteChatId = null;
+      
+      // Function to show the delete chat confirmation modal
+      function showDeleteChatModal(chatId, event) {
+        // Prevent the click from reaching the history-item parent
+        event.stopPropagation();
+        
+        currentDeleteChatId = chatId;
+        document.getElementById('deleteChatModal').classList.add('active');
+      }
+      
+      // Function to hide the delete chat confirmation modal
+      function hideDeleteChatModal() {
+        document.getElementById('deleteChatModal').classList.remove('active');
+        currentDeleteChatId = null;
+      }
+      
+      // Set up event listeners for the chat modal buttons
+      document.getElementById('cancelChatDelete').addEventListener('click', hideDeleteChatModal);
+      document.getElementById('confirmChatDelete').addEventListener('click', confirmDeleteChat);
+      
+      // Click outside to close chat modal
+      document.getElementById('deleteChatModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideDeleteChatModal();
+        }
+      });
+      
+      // Function to delete a chat
+      async function confirmDeleteChat() {
+        if (!currentDeleteChatId) return;
+        
+        try {
+          const response = await fetch(`/api/chat/${currentDeleteChatId}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+  
+          if (!response.ok) {
+            throw new Error("Failed to delete chat");
+          }
+  
+          const data = await response.json();
+          console.log("Chat deleted:", data);
+  
+          // If we're deleting the current chat, start a new one
+          if (currentChatId === currentDeleteChatId) {
+            startNewChat();
+          }
+  
+          // Reload chat history
+          await loadChatHistory();
+  
+          // Hide the modal
+          hideDeleteChatModal();
+        } catch (error) {
+          console.error("Error deleting chat:", error);
+          alert("Failed to delete chat. Please try again.");
+          hideDeleteChatModal();
+        }
+      }
+
+      // Query Suggestion Carousel Implementation
+      class SuggestionCarousel {
+        constructor(inputElement, suggestionsArray = []) {
+          this.inputElement = inputElement;
+          this.suggestions = suggestionsArray;
+          this.carouselElement = document.getElementById('suggestionCarousel');
+          this.itemsContainer = document.getElementById('suggestionItems');
+          this.prevButton = document.querySelector('.carousel-prev');
+          this.nextButton = document.querySelector('.carousel-next');
+          this.isVisible = false;
+          this.scrollAmount = 0;
+          this.itemWidth = 150; // Will be calculated dynamically
+          
+          // Initialize
+          this.render();
+          this.attachEvents();
+          this.hide(); // Initially hidden
+        }
+        
+        render() {
+          // Clear existing items
+          this.itemsContainer.innerHTML = '';
+          
+          // Add suggestions
+          this.suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('button');
+            item.className = 'suggestion-item';
+            item.textContent = suggestion;
+            item.setAttribute('role', 'option');
+            item.setAttribute('tabindex', this.isVisible ? '0' : '-1');
+            item.setAttribute('aria-selected', 'false');
+            
+            item.addEventListener('click', () => this.selectSuggestion(suggestion));
+            
+            this.itemsContainer.appendChild(item);
+          });
+          
+          // Calculate item width after rendering
+          if (this.suggestions.length > 0 && this.itemsContainer.firstChild) {
+            this.itemWidth = this.itemsContainer.firstChild.offsetWidth + 10; // width + margin
+          }
+        }
+        
+        attachEvents() {
+          // Show on input hover
+          this.inputElement.addEventListener('mouseenter', () => this.show());
+          
+          // Hide when mouse leaves the carousel and input area
+          const inputWrapper = document.querySelector('.chat-input-wrapper');
+          
+          // Create a flag to track if the mouse is over carousel or input
+          let isMouseOverCarousel = false;
+          let isMouseOverInput = false;
+          
+          // Track mouse enter/leave for carousel
+          this.carouselElement.addEventListener('mouseenter', () => {
+            isMouseOverCarousel = true;
+          });
+          
+          this.carouselElement.addEventListener('mouseleave', (e) => {
+            isMouseOverCarousel = false;
+            // Only hide if mouse is not over the input either
+            if (!isMouseOverInput) {
+              setTimeout(() => {
+                if (!isMouseOverCarousel && !isMouseOverInput) {
+                  this.hide();
+                }
+              }, 100); // Small delay to prevent flickering
+            }
+          });
+          
+          // Track mouse enter/leave for input
+          this.inputElement.addEventListener('mouseenter', () => {
+            isMouseOverInput = true;
+          });
+          
+          this.inputElement.addEventListener('mouseleave', (e) => {
+            isMouseOverInput = false;
+            // Only hide if mouse is not over the carousel either
+            if (!isMouseOverCarousel) {
+              setTimeout(() => {
+                if (!isMouseOverCarousel && !isMouseOverInput) {
+                  this.hide();
+                }
+              }, 100); // Small delay to prevent flickering
+            }
+          });
+          
+          // Navigation buttons
+          this.prevButton.addEventListener('click', () => this.scroll(-1));
+          this.nextButton.addEventListener('click', () => this.scroll(1));
+          
+          // Touch swipe support
+          let touchStartX = 0;
+          this.itemsContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+          }, { passive: true });
+          
+          this.itemsContainer.addEventListener('touchmove', (e) => {
+            if (!touchStartX) return;
+            
+            const touchEndX = e.touches[0].clientX;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > 50) { // Minimum swipe distance
+              this.scroll(diff > 0 ? 1 : -1);
+              touchStartX = 0; // Reset to prevent multiple scrolls
+            }
+          }, { passive: true });
+          
+          // Keyboard navigation
+          this.carouselElement.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+              e.preventDefault();
+              this.focusNextItem();
+            } else if (e.key === 'ArrowLeft') {
+              e.preventDefault();
+              this.focusPrevItem();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              const focusedItem = document.activeElement;
+              if (focusedItem && focusedItem.classList.contains('suggestion-item')) {
+                this.selectSuggestion(focusedItem.textContent);
+              }
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              this.hide();
+              this.inputElement.focus();
+            }
+          });
+          
+          // Window resize handler
+          window.addEventListener('resize', () => {
+            if (this.isVisible) {
+              // Recalculate visible items on resize
+              this.updateCarouselState();
+            }
+          });
+        }
+        
+        focusNextItem() {
+          const items = this.itemsContainer.querySelectorAll('.suggestion-item');
+          const focusedItem = document.activeElement;
+          let nextIndex = 0;
+          
+          if (focusedItem && focusedItem.classList.contains('suggestion-item')) {
+            for (let i = 0; i < items.length; i++) {
+              if (items[i] === focusedItem) {
+                nextIndex = (i + 1) % items.length;
+                break;
+              }
+            }
+          }
+          
+          items[nextIndex].focus();
+          this.scrollToItem(nextIndex);
+        }
+        
+        focusPrevItem() {
+          const items = this.itemsContainer.querySelectorAll('.suggestion-item');
+          const focusedItem = document.activeElement;
+          let prevIndex = items.length - 1;
+          
+          if (focusedItem && focusedItem.classList.contains('suggestion-item')) {
+            for (let i = 0; i < items.length; i++) {
+              if (items[i] === focusedItem) {
+                prevIndex = (i - 1 + items.length) % items.length;
+                break;
+              }
+            }
+          }
+          
+          items[prevIndex].focus();
+          this.scrollToItem(prevIndex);
+        }
+        
+        scrollToItem(index) {
+          const containerWidth = this.itemsContainer.parentElement.offsetWidth;
+          const totalWidth = this.itemWidth * this.suggestions.length;
+          
+          if (totalWidth <= containerWidth) return; // No need to scroll
+          
+          const itemPosition = index * this.itemWidth;
+          const maxScroll = totalWidth - containerWidth;
+          
+          let newScroll = itemPosition - (containerWidth / 2) + (this.itemWidth / 2);
+          newScroll = Math.max(0, Math.min(newScroll, maxScroll));
+          
+          this.scrollAmount = newScroll;
+          this.itemsContainer.style.transform = `translateX(-${this.scrollAmount}px)`;
+          this.updateArrowVisibility();
+        }
+        
+        scroll(direction) {
+          const containerWidth = this.itemsContainer.parentElement.offsetWidth;
+          const totalWidth = this.itemWidth * this.suggestions.length;
+          
+          if (totalWidth <= containerWidth) return; // No need to scroll
+          
+          // Scroll by approx. 3 items or container width, whichever is smaller
+          const scrollDistance = Math.min(this.itemWidth * 3, containerWidth);
+          const maxScroll = totalWidth - containerWidth;
+          
+          // Calculate new scroll position
+          this.scrollAmount += direction * scrollDistance;
+          this.scrollAmount = Math.max(0, Math.min(this.scrollAmount, maxScroll));
+          
+          // Apply scroll with smooth transition
+          this.itemsContainer.style.transform = `translateX(-${this.scrollAmount}px)`;
+          this.updateArrowVisibility();
+        }
+        
+        updateArrowVisibility() {
+          const containerWidth = this.itemsContainer.parentElement.offsetWidth;
+          const totalWidth = this.itemWidth * this.suggestions.length;
+          
+          // Only show arrows if content overflows
+          if (totalWidth <= containerWidth) {
+            this.prevButton.style.display = 'none';
+            this.nextButton.style.display = 'none';
+            return;
+          }
+          
+          // Update arrow visibility based on scroll position
+          this.prevButton.style.display = this.scrollAmount > 0 ? 'flex' : 'none';
+          this.nextButton.style.display = this.scrollAmount < (totalWidth - containerWidth - 5) ? 'flex' : 'none';
+        }
+        
+        selectSuggestion(suggestion) {
+          this.inputElement.value = suggestion;
+          this.hide();
+          
+          // Trigger message send
+          sendMessage();
+        }
+        
+        show() {
+          if (this.isVisible) return;
+          
+          this.isVisible = true;
+          // Apply styles directly for better browser compatibility
+          this.carouselElement.style.opacity = '1';
+          this.carouselElement.style.visibility = 'visible';
+          this.carouselElement.style.transform = 'translateY(0)';
+          this.carouselElement.classList.add('visible');
+          
+          // Update tabindex for keyboard navigation
+          const items = this.itemsContainer.querySelectorAll('.suggestion-item');
+          items.forEach(item => item.setAttribute('tabindex', '0'));
+          
+          this.updateCarouselState();
+        }
+        
+        hide() {
+          if (!this.isVisible) return;
+          
+          this.isVisible = false;
+          // Apply styles directly for better browser compatibility  
+          this.carouselElement.style.opacity = '0';
+          this.carouselElement.style.visibility = 'hidden';
+          this.carouselElement.style.transform = 'translateY(10px)';
+          this.carouselElement.classList.remove('visible');
+          
+          // Update tabindex to prevent keyboard focus when hidden
+          const items = this.itemsContainer.querySelectorAll('.suggestion-item');
+          items.forEach(item => item.setAttribute('tabindex', '-1'));
+        }
+        
+        updateCarouselState() {
+          // Reset scroll position when showing
+          this.scrollAmount = 0;
+          this.itemsContainer.style.transform = 'translateX(0)';
+          
+          // Update arrow visibility
+          this.updateArrowVisibility();
+        }
+        
+        updateSuggestions(newList) {
+          this.suggestions = newList;
+          this.render();
+          
+          if (this.isVisible) {
+            this.updateCarouselState();
+          }
+        }
+      }
+      
+      // Load suggestions from academic calendar data
+      async function loadFaqSuggestions() {
+        try {
+          const response = await fetch('/faqdata/ac.json');
+          if (!response.ok) {
+            throw new Error('Failed to load FAQ data');
+          }
+          
+          const data = await response.json();
+          
+          // Extract questions and answers from academic calendar
+          const academicCalendarSuggestions = data
+            .filter(item => item.Activity) // Filter out items without Activity
+            .map(item => ({
+              text: `When is the ${item.Activity}?`,
+              answer: `The ${item.Activity} is on ${item.Date}.`
+            }));
+          
+          return academicCalendarSuggestions;
+        } catch (error) {
+          console.error('Error loading FAQ suggestions:', error);
+          return [];
+        }
+      }
+      
+      // Initialize suggestion carousel with default suggestions
+      let defaultSuggestions = [
+        {
+          text: "When is the Commencement of Classes of Even Semester?",
+          answer: "The Commencement of Classes of Even Semester is on 15-01-2025."
+        },
+        {
+          text: "When are the Sessional Examination of Even Semester?",
+          answer: "Sessional Examination of Even Semester is scheduled from 19-03-2025 to 22-03-2025."
+        },
+        {
+          text: "When is the Makeup Sessional Examination of Even Semester?",
+          answer: "Makeup Sessional Examination of Even Semester is from 07-04-2025 to 11-04-2025."
+        },
+        {
+          text: "When is the Second Sessional Examination of B. Pharm Even Semester?",
+          answer: "Second Sessional Examination of B. Pharm Even Semester is from 07-04-2025 to 11-04-2025."
+        },
+        {
+          text: "When is the Makeup Sessional Examination of Even Semester B. Pharm?",
+          answer: "Makeup Sessional Examination of Even Semester B. Pharm is from 22-04-2025 to 24-04-2025."
+        },
+        {
+          text: "What are the dates for Examination form fill-up of Even Semester?",
+          answer: "Examination form fill-up dates are from 01-03-2025 to 15-03-2025 for regular/carry over students."
+        },
+        {
+          text: "What is the last date of classes for even semester?",
+          answer: "The last date of classes for even semester is 30-04-2025."
+        },
+        {
+          text: "When can I download my E-Admit Card?",
+          answer: "E-Admit Card download starts from 23-04-2025 onwards."
+        },
+        {
+          text: "When are the End Semester Practical Examinations?",
+          answer: "End Semester Practical Examinations are from 01-05-2025 to 06-05-2025."
+        },
+        {
+          text: "When are the End Semester Theory Examinations?",
+          answer: "End Semester Theory Examinations are from 08-05-2025 to 05-06-2025."
+        }
+      ];
+      
+      // Initialize carousel when document is loaded
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Initialize suggestion carousel
+        const messageInput = document.getElementById("messageInput");
+        const suggestionCarousel = new SuggestionCarousel(messageInput, defaultSuggestions.map(s => s.text));
+        
+        // Load and update with dynamic FAQ suggestions
+        try {
+          const faqSuggestions = await loadFaqSuggestions();
+          if (faqSuggestions && faqSuggestions.length > 0) {
+            // Combine default suggestions with dynamic ones, up to 15 total
+            const combinedSuggestions = [...new Set([...defaultSuggestions.map(s => s.text), ...faqSuggestions.map(s => s.text)])].slice(0, 15);
+            suggestionCarousel.updateSuggestions(combinedSuggestions);
+          }
+        } catch (error) {
+          console.error("Failed to load FAQ suggestions:", error);
+        }
+        
+        // Make carousel available globally for potential external updates
+        window.suggestionCarousel = suggestionCarousel;
+      });
+      
+      // Function to update suggestions from external code
+      function updateSuggestions(newList) {
+        if (window.suggestionCarousel) {
+          window.suggestionCarousel.updateSuggestions(newList);
+        }
+      }
+
+      // Function to show the query help modal
+      function showQueryHelpModal() {
+        document.getElementById('queryHelpModal').classList.add('active');
+      }
+
+      // Function to hide the query help modal
+      function hideQueryHelpModal() {
+        document.getElementById('queryHelpModal').classList.remove('active');
+      }
+
+      // Set up event listeners for the query help modal buttons
+      document.getElementById('closeQueryHelpModal').addEventListener('click', hideQueryHelpModal);
+
+      // Initialize the query help button
+      document.getElementById('queryHelpBtn').addEventListener('click', showQueryHelpModal);
+
+      // Click outside to close the query help modal
+      document.getElementById('queryHelpModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideQueryHelpModal();
+        }
+      });
+      
+      // Add a welcome message with instructions for the /query command
+      function addWelcomeMessage() {
+        setTimeout(() => {
+          const welcomeMessage = "Welcome to the AI Query Bot! You can chat with me normally or use the <code>/query</code> command to search for specific information in our database. Click the help button <i class='fas fa-question-circle'></i> next to the chat input for examples.";
+          addMessage(welcomeMessage, "bot", true);
+        }, 500);
+      }
+      
+      // Add welcome message when page loads (if no chat is loaded)
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!currentChatId) {
+          addWelcomeMessage();
+        }
+        
+        // Add event listener for query detection
+        document.getElementById('messageInput').addEventListener('input', function() {
+          const text = this.value;
+          if (text.startsWith('/query')) {
+            this.classList.add('query-mode');
+          } else {
+            this.classList.remove('query-mode');
+          }
+        });
+      });
+
+      // Create a new chat
+      async function createNewChat() {
+        try {
+          // Clear any existing chat
+          const chatBody = document.getElementById("chatBody");
+          chatBody.innerHTML = "";
+
+          // Reset current chat ID
+          currentChatId = null;
+          
+          // Update chat name display
+          document.getElementById("currentChatName").textContent = "New Chat";
+          
+          // Hide clear chat button until chat has messages
+          if (clearChatBtn) {
+            clearChatBtn.style.display = 'none';
+          }
+          
+          // Add welcome message
+          addWelcomeMessage();
+
+          // Update active state in sidebar
+          document.querySelectorAll(".history-item").forEach((item) => {
+            item.classList.remove("active");
+          });
+          
+          // Focus on the message input
+          document.getElementById("messageInput").focus();
+        } catch (error) {
+          console.error("Error creating new chat:", error);
+        }
+      }
+
+      // Function to generate FAQ suggestions
+      function generateSuggestions() {
+        const suggestions = [
+          {
+            text: "When is the Commencement of Classes of Even Semester?",
+            answer: "The Commencement of Classes of Even Semester is on 15-01-2025."
+          },
+          {
+            text: "When are the Sessional Examination of Even Semester?",
+            answer: "Sessional Examination of Even Semester is scheduled from 19-03-2025 to 22-03-2025."
+          },
+          {
+            text: "When is the Makeup Sessional Examination of Even Semester?",
+            answer: "Makeup Sessional Examination of Even Semester is from 07-04-2025 to 11-04-2025."
+          },
+          {
+            text: "When is the Second Sessional Examination of B. Pharm Even Semester?",
+            answer: "Second Sessional Examination of B. Pharm Even Semester is from 07-04-2025 to 11-04-2025."
+          },
+          {
+            text: "When is the Makeup Sessional Examination of Even Semester B. Pharm?",
+            answer: "Makeup Sessional Examination of Even Semester B. Pharm is from 22-04-2025 to 24-04-2025."
+          },
+          {
+            text: "What are the dates for Examination form fill-up of Even Semester?",
+            answer: "Examination form fill-up dates are from 01-03-2025 to 15-03-2025 for regular/carry over students."
+          },
+          {
+            text: "What is the last date of classes for even semester?",
+            answer: "The last date of classes for even semester is 30-04-2025."
+          },
+          {
+            text: "When can I download my E-Admit Card?",
+            answer: "E-Admit Card download starts from 23-04-2025 onwards."
+          },
+          {
+            text: "When are the End Semester Practical Examinations?",
+            answer: "End Semester Practical Examinations are from 01-05-2025 to 06-05-2025."
+          },
+          {
+            text: "When are the End Semester Theory Examinations?",
+            answer: "End Semester Theory Examinations are from 08-05-2025 to 05-06-2025."
+          }
+        ];
+        
+        return suggestions;
+      }
+
+      // Function to check for resolved queries
+      async function checkResolvedQueries() {
+        // Functionality disabled as requested by user
+        console.log("Resolved query notifications disabled");
+        return;
+      }
+      
+      // Function to dismiss all notifications
+      async function dismissAllNotifications() {
+        // Functionality disabled as requested by user
+        console.log("Notification dismissal disabled");
+        return;
+      }
+      
+      // Function to toggle resolved queries visibility
+      function toggleResolvedQueries() {
+        // Functionality disabled as requested by user
+        console.log("Resolved queries toggle disabled");
+            return;
+          }
+          
+      // Function to use the resolved query
+      function useResolvedQuery(query) {
+        // Functionality disabled as requested by user
+        console.log("Resolved query usage disabled");
+        return;
+      }
+
+      // Load FAQs for the FAQ section
+      function loadFaqs() {
+        console.log("loadFaqs function called");
+        
+        // Get the hardcoded academic calendar FAQs
+        const academicCalendarFaqs = getAcademicCalendarFaqs();
+
+        // Get the FAQ list element
+        const faqList = document.getElementById('faqList');
+        if (!faqList) {
+          console.error('FAQ list element not found');
+          return;
+        }
+        
+        console.log("FAQ list element found:", faqList);
+        
+        // Clear existing FAQs
+        faqList.innerHTML = '';
+        
+        // Add a category header
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'faq-category-header';
+        categoryHeader.textContent = 'Academic Calendar';
+        faqList.appendChild(categoryHeader);
+        
+        // Add FAQ items
+        academicCalendarFaqs.forEach(faq => {
+          const faqItem = document.createElement('div');
+          faqItem.className = 'faq-item';
+          faqItem.textContent = faq.question;
+          
+          // Add click event to send the question and get the answer
+          faqItem.addEventListener('click', () => {
+            sendFaqQuestion(faq.question, faq.answer);
+          });
+          
+          faqList.appendChild(faqItem);
+        });
+        
+        // Add the "Other" FAQ option
+        const otherFaqItem = document.createElement('div');
+        otherFaqItem.className = 'faq-item other-faq';
+        otherFaqItem.textContent = 'Other';
+        otherFaqItem.id = 'otherFaqOption';
+        
+        // Add click event to enable chat input
+        otherFaqItem.addEventListener('click', enableChatInput);
+        
+        faqList.appendChild(otherFaqItem);
+        
+        console.log("Added 'Other' FAQ option:", otherFaqItem);
+        
+        // Display the FAQ section
+        const faqSection = document.querySelector('.faq-section');
+        if (faqSection) {
+          faqSection.style.display = 'block';
+        }
+        
+        console.log("FAQs loaded successfully");
+      }
+
+      // Function to enable chat input when "Other" is clicked
+      function enableChatInput() {
+        // Show the query prompt
+        const queryPrompt = document.getElementById('queryPrompt');
+        if (queryPrompt) {
+          queryPrompt.style.display = 'block';
+        }
+        
+        // Enable the chat input
+        const chatInputContainer = document.getElementById('chatInputContainer');
+        if (chatInputContainer) {
+          chatInputContainer.classList.remove('disabled');
+        }
+        
+        // Enable the textarea
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+          messageInput.disabled = false;
+          messageInput.focus();
+        }
+        
+        // Add a system message
+        addMessage("Please type your query and I'll try to assist you.", 'bot');
+        
+        // Save this state to localStorage
+        localStorage.setItem('chatInputEnabled', 'true');
+        
+        console.log("Chat input enabled and state saved");
+      }
+
+      // Function to get hardcoded academic calendar FAQs
+      function getAcademicCalendarFaqs() {
+        return [
+          {
+            question: "When is End Semester/ annual Regular & Carry Over (Theory) Examination?",
+            answer: "The End Semester/ annual Regular & Carry Over (Theory) Examination is from **08-05-2025 to 05-06-2025**.",
+            source: "academic_calendar"
+          },
+          {
+            question: "When is Semester Break (Even Semester)?",
+            answer: "The Semester Break (Even Semester) is from **23-06-2025 to 29-06-2025**.",
+            source: "academic_calendar"
+          },
+          {
+            question: "When is Declaration of Result of Even Semester and Annual Courses?",
+            answer: "The Declaration of Result of Even Semester and Annual Courses starts from **10-06-2025 onwards**.",
+            source: "academic_calendar"
+          },
+          {
+            question: "When is Scholarship Form Submission Process?",
+            answer: "The Scholarship Form Submission Process is from **01-07-2025 to 15-07-2025**.",
+            source: "academic_calendar"
+          },
+          {
+            question: "When is The Process of Scholarship Form Submission?",
+            answer: "The Process of Scholarship Form Submission is from **01-07-2025 to 15-07-2025**.",
+            source: "academic_calendar"
+          }
+        ];
+      }
+      
+      // Updated searchFaqData function to handle missing endpoints
+      async function searchFaqData(query, fileType = null) {
+        try {
+          // Prepare the request data
+          const requestData = { query };
+          if (fileType) {
+            requestData.fileType = fileType;
+          }
+          
+          let apiResponse = null;
+          
+          // Try to make an API call to the direct FAQ endpoint
+          try {
+            const directResponse = await fetch('/api/direct-faq', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestData)
+            });
+            
+            if (directResponse.ok) {
+              const data = await directResponse.json();
+              
+              // If the endpoint found a match, format it for display
+              if (data.found && data.response) {
+                return {
+                  success: true,
+                  formatted: data.response,
+                  source: data.source || 'unknown'
+                };
+              }
+            }
+          } catch (directError) {
+            console.warn('Direct FAQ endpoint not available:', directError);
+          }
+          
+          // Try the fallback endpoint if direct endpoint failed or found no match
+          try {
+            const fallbackResponse = await fetch('/api/faq-search', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestData)
+            });
+            
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              if (fallbackData.formatted) {
+                return {
+                  success: true,
+                  ...fallbackData
+                };
+              }
+            }
+          } catch (fallbackError) {
+            console.warn('Fallback FAQ endpoint not available:', fallbackError);
+          }
+          
+          // If we're here, try to match directly with the hardcoded FAQs
+          const academicCalendarFaqs = getAcademicCalendarFaqs();
+          const normalizedQuery = query.toLowerCase().trim();
+          
+          // Look for direct or partial matches in hardcoded FAQs
+          for (const faq of academicCalendarFaqs) {
+            if (
+              normalizedQuery === faq.question.toLowerCase() ||
+              normalizedQuery.includes(faq.question.toLowerCase()) ||
+              faq.question.toLowerCase().includes(normalizedQuery)
+            ) {
+              return {
+                success: true,
+                formatted: faq.answer,
+                source: 'hardcoded_faq'
+              };
+            }
+          }
+          
+          // Try keyword matching with hardcoded FAQs
+          const queryWords = normalizedQuery.split(/\s+/).filter(word => 
+            word.length > 3 && !['the', 'is', 'are', 'will', 'be', 'to', 'for', 'in', 'on', 'at'].includes(word)
+          );
+          
+          if (queryWords.length > 0) {
+            for (const faq of academicCalendarFaqs) {
+              const faqLower = faq.question.toLowerCase();
+              if (queryWords.some(word => faqLower.includes(word))) {
+                return {
+                  success: true,
+                  formatted: faq.answer,
+                  source: 'hardcoded_faq'
+                };
+              }
+            }
+          }
+          
+          // Otherwise, no match found
+          return {
+            success: false,
+            error: "No matching information found"
+          };
+        } catch (error) {
+          console.error('Error in searchFaqData:', error);
+          return {
+            success: false,
+            error: error.message || 'Unknown error occurred'
+          };
+        }
+      }
+
+      // Function to save query to history
+      function saveQueryToHistory(query, type) {
+        const queryItem = {
+          id: Date.now(),
+          text: query,
+          type: type, // 'faq' or 'query'
+          timestamp: new Date().toISOString()
+        };
+        queryHistory.push(queryItem);
+        updateQueryHistoryDisplay();
+        // Save to localStorage
+        localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+      }
+
+      // Function to update query history display
+      function updateQueryHistoryDisplay() {
+        const historyContainer = document.getElementById('chatHistory');
+        if (!historyContainer) return;
+
+        // Clear existing history
+        historyContainer.innerHTML = '';
+
+        // Add each query to history
+        queryHistory.forEach(query => {
+          const historyItem = document.createElement('div');
+          historyItem.className = 'history-item';
+          historyItem.innerHTML = `
+            <i class="fas ${query.type === 'faq' ? 'fa-question-circle' : 'fa-search'}"></i>
+            <span class="chat-name">${query.text}</span>
+            <button class="history-action-btn" onclick="deleteQueryHistory(${query.id})">
+              <i class="fas fa-trash"></i>
+            </button>
+          `;
+          historyItem.onclick = () => loadQueryHistory(query);
+          historyContainer.appendChild(historyItem);
+        });
+      }
+
+      // Function to delete query from history
+      function deleteQueryHistory(queryId) {
+        queryHistory = queryHistory.filter(q => q.id !== queryId);
+        updateQueryHistoryDisplay();
+        localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+      }
+
+      // Function to load query history
+      function loadQueryHistory(query) {
+        if (query.type === 'faq') {
+          // Handle FAQ query
+          handleFAQQuery(query.text);
+        } else {
+          // Handle regular query
+          document.getElementById('messageInput').value = query.text;
+          sendMessage();
+        }
+      }
+
+      // Load query history from localStorage on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        const savedHistory = localStorage.getItem('queryHistory');
+        if (savedHistory) {
+          queryHistory = JSON.parse(savedHistory);
+          updateQueryHistoryDisplay();
+        }
+      });
+
+      // Modify the existing sendMessage function to save queries
+      async function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value.trim();
+        
+        if (!message) return;
+        
+        // Save message to chat
+        addMessageToChat('user', message);
+        messageInput.value = '';
+        autoResize(messageInput);
+        
+        // Check if it's a query command
+        if (message.startsWith('/query')) {
+          const query = message.substring(7).trim();
+          saveQueryToHistory(query, 'query');
+          // Handle query command
+          handleQueryCommand(query);
+        } else {
+          // Handle regular message
+          handleRegularMessage(message);
+        }
+      }
+
+      // Modify the existing handleFAQQuery function to save FAQ queries
+      function handleFAQQuery(question) {
+        saveQueryToHistory(question, 'faq');
+        // Rest of the existing handleFAQQuery function
+        // ... existing code ...
+      }
+
+      // Add event listener for FAQ items
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.faq-item')) {
+          const question = e.target.closest('.faq-item').textContent.trim();
+          saveQueryToHistory(question, 'faq');
+        }
+      });
+
+      async function submitUndefinedQuery(query) {
+        try {
+          // This endpoint is GET for fetching, but POST for submission (to be implemented if needed)
+          // For now, the backend saves undefined queries on /api/chat, so this can be a no-op or a placeholder
+          // Optionally, you can POST to a new endpoint if you want to force-save
+        } catch (e) {
+          console.error('Failed to submit undefined query:', e);
+        }
+      }
+
+      async function fetchAdminResponse(query) {
+        try {
+          const res = await fetch(`/api/undefined-queries/response?query=${encodeURIComponent(query)}`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data.response && data.status === 'approved') {
+            return data.response;
+          }
+          return null;
+        } catch (e) {
+          console.error('Failed to fetch admin response:', e);
+          return null;
+        }
+      }
+
+      function showAdminResponse(response) {
+        const panel = document.getElementById('adminResponsePanel');
+        const list = document.getElementById('adminResponseList');
+        if (response) {
+          list.innerHTML = `<div class='admin-response-card'><div class='admin-response-answer'>${response}</div></div>`;
+          panel.style.display = 'flex';
+        } else {
+          list.innerHTML = `<div class='admin-response-card'><div class='admin-response-answer'>No admin response yet. Your query has been sent to the admin.</div></div>`;
+          panel.style.display = 'flex';
+        }
+      }
+
+      // Update sendMessage to fetch and show admin response after sending
+      const originalSendMessage = sendMessage;
+      sendMessage = async function() {
+        await originalSendMessage.apply(this, arguments);
+        const messageInput = document.getElementById('messageInput');
+        const messageText = messageInput.value.trim();
+        if (!messageText) return;
+        // After sending, fetch admin response
+        const adminResponse = await fetchAdminResponse(messageText);
+        showAdminResponse(adminResponse);
+      };
+
+      // FAQ Handling Functions
+      // Function to load FAQs from the server
+      async function loadFAQs() {
+        console.log("loadFAQs (uppercase) function called - redirecting to loadFaqs");
+        // Call our correct function that includes the "Other" option
+        loadFaqs();
+      }
+      
+      // Function to handle FAQ item click
+      function handleFaqClick(question, answer) {
+        // Add user question to chat
+        addMessage(question, 'user');
+        
+        // Show typing indicator
+        const typingIndicator = showTypingIndicator();
+        
+        // Simulate delay for typing effect
+        setTimeout(() => {
+          // Remove typing indicator
+          removeTypingIndicator();
+          
+          // Add bot response
+          addMessage(answer, 'bot', true);
+          
+          // Scroll to latest message
+          scrollToLatestMessage();
+          
+          // Save to chat history
+          saveFaqToHistory(question, answer);
+        }, 1000);
+      }
+      
+      // Function to save FAQ interaction to history
+      async function saveFaqToHistory(question, answer) {
+        try {
+          if (!currentChatId) {
+            currentChatId = generateUUID();
+          }
+          
+          const response = await fetch('/api/save-faq-interaction', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              chatId: currentChatId,
+              question: question,
+              answer: answer
+            })
+          });
+          
+          if (!response.ok) {
+            console.error('Failed to save FAQ interaction');
+          }
+        } catch (error) {
+          console.error('Error saving FAQ interaction:', error);
+        }
+      }
+      
+      // Toggle FAQ section visibility
+      const faqHeader = document.getElementById('faqHeader');
+      const faqList = document.getElementById('faqList');
+      const faqToggleBtn = document.getElementById('faqToggleBtn');
+      const faqToggleIcon = document.getElementById('faqToggleIcon');
+      
+      faqHeader.addEventListener('click', () => {
+        const isVisible = faqList.style.display !== 'none';
+        faqList.style.display = isVisible ? 'none' : 'block';
+        faqToggleIcon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        
+        // Load FAQs if opening and not loaded yet
+        if (!isVisible && faqList.querySelectorAll('.faq-item').length === 0) {
+          loadFAQs();
+        }
+      });
+      
+      // Initialize the FAQ section on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        // Other initialization code...
+        
+        // Load FAQs if section is expanded by default
+        if (faqList.style.display !== 'none') {
+          loadFAQs();
+        }
+      });
+
+      // Function to update admin response panel
+      function updateAdminResponsePanel() {
+        // Load admin responses via API
+        fetch('/api/admin-responses')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to fetch admin responses');
+            }
+            return response.json();
+          })
+          .then(data => {
+            const adminResponseList = document.getElementById('adminResponseList');
+            const adminResponsePanel = document.getElementById('adminResponsePanel');
+            
+            if (!adminResponseList) return;
+            
+            // Clear existing content
+            adminResponseList.innerHTML = '';
+            
+            if (data.responses && data.responses.length > 0) {
+              // Show the panel
+              if (adminResponsePanel) {
+                adminResponsePanel.classList.remove('collapsed');
+              }
+              
+              // Add response cards
+              data.responses.forEach(item => {
+                const card = createAdminResponseCard(item);
+                adminResponseList.appendChild(card);
+              });
+            } else {
+              // If no responses, add a message
+              const emptyMessage = document.createElement('div');
+              emptyMessage.className = 'empty-response-message';
+              emptyMessage.textContent = 'No admin responses available';
+              adminResponseList.appendChild(emptyMessage);
+              
+              // Collapse the panel
+              if (adminResponsePanel) {
+                adminResponsePanel.classList.add('collapsed');
+              }
+            }
+          })
+          .catch(error => {
+            console.error('Error loading admin responses:', error);
+          });
+      }
+      
+      // Function to create admin response card
+      function createAdminResponseCard(data) {
+        const { id, query, response } = data;
+        
+        const card = document.createElement('div');
+        card.className = 'admin-response-card';
+        card.dataset.id = id;
+        
+        const queryDiv = document.createElement('div');
+        queryDiv.className = 'admin-response-query';
+        queryDiv.textContent = query;
+        
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'admin-response-answer';
+        responseDiv.innerHTML = marked.parse(response || '');
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'admin-response-actions';
+        
+        // Create OK button
+        const acceptBtn = document.createElement('button');
+        acceptBtn.className = 'admin-response-btn accept';
+        acceptBtn.textContent = 'OK';
+        acceptBtn.addEventListener('click', () => acceptAdminResponse(id, query, response));
+        
+        // Create Ask Again button
+        const askAgainBtn = document.createElement('button');
+        askAgainBtn.className = 'admin-response-btn ask-again';
+        askAgainBtn.textContent = 'Ask Again';
+        askAgainBtn.addEventListener('click', () => {
+          // Set the question in the input field
+          const messageInput = document.getElementById('messageInput');
+          if (messageInput) {
+            messageInput.value = query;
+            messageInput.focus();
+            autoResize(messageInput);
+          }
+          
+          // Remove the card
+          card.remove();
+          
+          // Check if panel is empty, if so collapse it
+          const adminResponseList = document.getElementById('adminResponseList');
+          if (adminResponseList && adminResponseList.children.length === 0) {
+            const adminResponsePanel = document.getElementById('adminResponsePanel');
+            if (adminResponsePanel) {
+              adminResponsePanel.classList.add('collapsed');
+            }
+          }
+        });
+        
+        // Add buttons to actions div
+        actionsDiv.appendChild(acceptBtn);
+        actionsDiv.appendChild(askAgainBtn);
+        
+        // Assemble the card
+        card.appendChild(queryDiv);
+        card.appendChild(responseDiv);
+        card.appendChild(actionsDiv);
+        
+        return card;
+      }
+      
+      // Function to accept admin response
+      async function acceptAdminResponse(id, query, response) {
+        try {
+          // Add messages to chat
+          addMessage(query, 'user');
+          
+          // Show typing indicator
+          const typingIndicator = showTypingIndicator();
+          
+          // Simulate delay for typing effect
+          setTimeout(() => {
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Add bot response
+            addMessage(response, 'bot', true);
+            
+            // Scroll to latest message
+            scrollToLatestMessage();
+          }, 1000);
+          
+          // Store in local storage for future reference
+          const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+          notifications.push({ query, response });
+          localStorage.setItem('notifications', JSON.stringify(notifications));
+          
+          // Remove the card from the panel
+          const card = document.querySelector(`.admin-response-card[data-id="${id}"]`);
+          if (card) {
+            card.remove();
+          }
+          
+          // Check if panel is empty, if so collapse it
+          const adminResponseList = document.getElementById('adminResponseList');
+          if (adminResponseList && adminResponseList.children.length === 0) {
+            const adminResponsePanel = document.getElementById('adminResponsePanel');
+            if (adminResponsePanel) {
+              adminResponsePanel.classList.add('collapsed');
+            }
+          }
+        } catch (error) {
+          console.error('Error accepting admin response:', error);
+        }
+      }
+      
+      // Add event listener for admin response panel toggle
+      document.getElementById('adminResponseToggle')?.addEventListener('click', () => {
+        const panel = document.getElementById('adminResponsePanel');
+        if (panel) {
+          panel.classList.toggle('collapsed');
+          
+          // Update icon
+          const icon = document.querySelector('#adminResponseToggle i');
+          if (icon) {
+            icon.className = panel.classList.contains('collapsed') ? 
+              'fas fa-chevron-left' : 'fas fa-chevron-right';
+          }
+        }
+      });
+      
+      // Load admin responses on page load and periodically
+      document.addEventListener('DOMContentLoaded', () => {
+        // Initial load
+        updateAdminResponsePanel();
+        
+        // Set up interval to check for new responses every 30 seconds
+        setInterval(updateAdminResponsePanel, 30000);
+      });
+
+      // Add missing utility functions
+      function generateUUID() {
+        // This function generates a simple UUID (v4)
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      // Define fetchUserInfo if it doesn't exist elsewhere
+      async function fetchUserInfo() {
+        try {
+          // Check if a local username is stored
+          const storedUsername = localStorage.getItem('username') || sessionStorage.getItem('username');
+          if (storedUsername) {
+            // Update the username display
+            const usernameDisplay = document.getElementById('username-display');
+            if (usernameDisplay) {
+              usernameDisplay.textContent = `Welcome, ${storedUsername}`;
+            }
+            return { username: storedUsername };
+          }
+          
+          // If no local username is stored, try to fetch from API
+          const response = await fetch('/api/user/profile');
+            
+          if (!response.ok) {
+            // Use a guest username if API call fails
+            const guestId = localStorage.getItem('guestId') || generateUUID();
+            localStorage.setItem('guestId', guestId);
+            
+            const usernameDisplay = document.getElementById('username-display');
+            if (usernameDisplay) {
+              usernameDisplay.textContent = 'Welcome, Guest';
+            }
+            
+            return { username: 'Guest', guestId };
+          }
+          
+          const userData = await response.json();
+          
+          // Update the username display
+          const usernameDisplay = document.getElementById('username-display');
+          if (usernameDisplay && userData.username) {
+            usernameDisplay.textContent = `Welcome, ${userData.username}`;
+          }
+          
+          return userData;
+        } catch (error) {
+          console.error('Error fetching user info:', error);
+          
+          // Fall back to guest mode
+          const usernameDisplay = document.getElementById('username-display');
+          if (usernameDisplay) {
+            usernameDisplay.textContent = 'Welcome, Guest';
+          }
+          
+          return { username: 'Guest' };
+        }
+      }
+    </script>
+
+    <!-- Add this after the existing script tags -->
+    <script type="module">
+      // Import named exports instead of default export
+      import { getUserNotifications, markNotificationAsRead, dismissNotification, getUnreadNotificationCount } from '/js/database.js';
+
+      // Initialize notification system
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          console.log("Notification functionality disabled");
+        } catch (error) {
+          console.error('Error initializing notification system:', error);
+        }
+      });
+
+      // Function to load notifications
+      async function loadNotifications() {
+        console.log("Notification functionality disabled");
+        return;
+      }
+
+      // Rest of the notification code...
+    </script>
+  </body>
+</html>

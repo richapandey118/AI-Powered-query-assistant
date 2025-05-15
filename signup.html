@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - AI Query Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            height: 100vh;
+        }
+
+        .signup-container {
+            max-width: 450px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .signup-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--secondary-color);
+        }
+
+        .signup-header h1 {
+            font-weight: 600;
+        }
+
+        .signup-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .signup-form .form-control {
+            height: 50px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            padding: 10px 15px;
+        }
+
+        .signup-form .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+        }
+
+        .btn-signup {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            height: 50px;
+            border-radius: 10px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-signup:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .signup-footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .signup-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .signup-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .brand-logo i {
+            font-size: 3rem;
+            color: var(--primary-color);
+        }
+
+        .alert {
+            display: none;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .alert-danger {
+            background-color: #fee2e2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        .alert-success {
+            background-color: #dcfce7;
+            border-color: #bbf7d0;
+            color: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">AI Query Bot</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.html">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="signup.html">Sign Up</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="signup-container">
+            <div class="brand-logo">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="signup-header">
+                <h1>Create Account</h1>
+                <p>Join AI Query Bot today</p>
+            </div>
+            <div class="alert alert-danger" id="errorAlert" role="alert"></div>
+            <div class="alert alert-success" id="successAlert" role="alert"></div>
+            <form class="signup-form" id="signupForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn btn-signup">Sign Up</button>
+            </form>
+            <div class="signup-footer">
+                <p>Already have an account? <a href="/login">Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in by checking with the server
+            async function checkAuth() {
+                try {
+                    const response = await fetch("/api/check-auth");
+                    const data = await response.json();
+
+                    if (data.authenticated) {
+                        window.location.href = "/chatbot";
+                    }
+                } catch (error) {
+                    console.error("Error checking authentication:", error);
+                }
+            }
+
+            // Check auth status when page loads
+            checkAuth();
+
+            // Demo user data (in a real app, this would be fetched from a server)
+            const existingEmails = ['user@example.com', 'demo@example.com'];
+
+            // Signup form submission
+            const signupForm = document.getElementById('signupForm');
+            const errorAlert = document.getElementById('errorAlert');
+            const successAlert = document.getElementById('successAlert');
+
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // Clear previous alerts
+                errorAlert.style.display = 'none';
+                successAlert.style.display = 'none';
+                
+                // Validate passwords match
+                if (password !== confirmPassword) {
+                    errorAlert.textContent = 'Passwords do not match';
+                    errorAlert.style.display = 'block';
+                    return;
+                }
+                
+                // Check if email is already registered
+                if (existingEmails.includes(email)) {
+                    errorAlert.textContent = 'This email is already registered or invalid. Please try again.';
+                    errorAlert.style.display = 'block';
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/signup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Store username in localStorage
+                        localStorage.setItem('signupUsername', username);
+                        
+                        successAlert.textContent = 'Account created successfully! Redirecting to chatbot...';
+                        successAlert.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            window.location.href = data.redirect || '/Chatbot.html';
+                        }, 1500);
+                    } else {
+                        errorAlert.textContent = data.error || 'Signup failed. Please try again.';
+                        errorAlert.style.display = 'block';
+                    }
+                } catch (error) {
+                    errorAlert.textContent = 'An error occurred. Please try again.';
+                    errorAlert.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
